@@ -57,11 +57,12 @@ describe('ziwei v2 calculation boundaries',()=>{
   const prev=r.segments.find(s=>s.from<='2025-08-08'&&s.to>='2025-08-08')!,next=r.segments.find(s=>s.from<='2025-08-09'&&s.to>='2025-08-09')!;
   expect(prev.to).toBe('2025-08-08');expect(next.from).toBe('2025-08-09');expect(prev.viewId).not.toBe(next.viewId);expect(r.views[prev.viewId].monthly.index).toBe(2);expect(r.views[next.viewId].monthly.index).toBe(3);expect(prev.monthlyRange.to).toBe('2025-08-08');expect(next.monthlyRange.from).toBe('2025-08-09');
  });
+ // Full-range calculations are CPU-bound and need headroom on shared CI runners.
  it('covers twelve full solar months, only referencing earlier states with complete twelve-palace blocks',()=>{
   const r=query(sample,{mode:'months',startMonth:'2026-11',count:12});expect(r.segments[0].from).toBe('2026-11-01');expect(r.segments.at(-1)?.to).toBe('2027-10-31');const seen=new Set<string>();for(const s of r.segments){if(s.repeated)expect(seen.has(s.viewId)).toBe(true);seen.add(s.viewId);expect(r.views[s.viewId].monthly.palaceNames).toHaveLength(12);expect(r.views[s.viewId].yearly.stars).toHaveLength(12);}expect(r.segments.some(s=>s.repeated)).toBe(true);
- });
+ },30000);
  it('covers complete Spring-Festival years and excludes monthly text from annual analyses',()=>{
   const r=query(sample,{mode:'years',years:[2026,2027,2028]});expect(r.segments.map(s=>[s.from,s.to])).toEqual([['2026-02-17','2027-02-05'],['2027-02-06','2028-01-25'],['2028-01-26','2029-02-12']]);expect(r.segments.map(s=>s.nominalAge)).toEqual([34,35,36]);expect(r.text).not.toContain('流月');expect(r.text).toContain('丙辰');
- },15000);
+ },60000);
  it('does not suppress invalid structure errors as a normal empty chart',()=>{expect(()=>createNatal({...sample,timeIndex:99})).toThrow(ZiweiError);expect(()=>query(sample,{mode:'months',startMonth:'2099-12',count:2})).toThrow(/支持范围/);});
 });

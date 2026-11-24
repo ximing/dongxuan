@@ -8,7 +8,7 @@
 - [GitHub Actions](../.github/workflows/deploy.yml) 在 main 业务代码变更或手动触发时运行：隔离 PostgreSQL 18 的完整后端测试、前端回归、类型检查 → 构建 amd64 镜像并推送 GHCR → 使用不可变 digest 部署 → HTTPS 健康检查。
 - [Compose](../deploy/compose.production.yml) 在 app 机 `/root/apps/dongxuan` 运行，宿主机 13014 映射容器 3040。数据库不随业务容器启动或重建。
 - 应用密码和签名密钥只在服务器 `.env`，示例见 [环境变量](../deploy/.env.production.example)。本次统一登录未配置，使用站内邮箱密码注册和登录。
-- GitHub repository secrets：`DONGXUAN_DEPLOY_KEY`、`DONGXUAN_KNOWN_HOSTS`。repository variables：`DONGXUAN_DEPLOY_HOST`、`DONGXUAN_DEPLOY_PORT`。镜像读写使用短期 `GITHUB_TOKEN`。
+- GitHub repository secrets：`DONGXUAN_DEPLOY_KEY`、`DONGXUAN_KNOWN_HOSTS`、`DONGXUAN_CI_PG_PASSWORD`（仅用于隔离 CI 库）。repository variables：`DONGXUAN_DEPLOY_HOST`、`DONGXUAN_DEPLOY_PORT`。镜像读写使用短期 `GITHUB_TOKEN`。
 - GitHub Runner 直连家庭 SSH 在握手阶段被重置，因此发布经入口机中转。`DONGXUAN_DEPLOY_HOST/PORT` 指向入口机；[中转脚本](../deploy/relay-ssh.sh) 从该机私有 `.env` 读取 app SSH 地址，再使用独立的第二跳密钥连接 app。两跳都固定服务器 host key，并带 `restrict` 与 forced command，只能部署本仓库合法镜像摘要；不允许任意命令、PTY 或端口转发。GHCR 登录信息仅存在部署期间的临时目录。
 
 ## 服务器文件与备份

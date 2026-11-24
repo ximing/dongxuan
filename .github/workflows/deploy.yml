@@ -31,7 +31,7 @@ jobs:
         image: postgres:18
         env:
           POSTGRES_USER: dongxuan_ci
-          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_PASSWORD: ${{ secrets.DONGXUAN_CI_PG_PASSWORD }}
           POSTGRES_DB: dongxuan_test
         ports: ["55439:5432"]
         options: --health-cmd "pg_isready -U dongxuan_ci -d dongxuan_test" --health-interval 5s --health-timeout 5s --health-retries 12
@@ -40,7 +40,7 @@ jobs:
       PG_HOST: 127.0.0.1
       PG_PORT: "55439"
       PG_USER: dongxuan_ci
-      PG_PASSWORD: isolated-ci-only
+      PG_PASSWORD: ${{ secrets.DONGXUAN_CI_PG_PASSWORD }}
       PG_DATABASE: dongxuan_test
       PG_SSL: "false"
       WEB_ORIGIN: http://127.0.0.1:5192
