@@ -50,6 +50,8 @@ NODE_ENV=production SERVE_WEB=1 node apps/server/dist/index.js
 
 ## 统一账号
 
+生产站点已开启，登录页点击「使用统一账号登录」。已有 SSO 会话时可直接进入；原独立邮箱账号可在设置中绑定统一账号。配置与验证见 [部署说明](docs/deployment.md#生产统一登录)。
+
 五个变量都空着，登录页只有邮箱密码。五个都有效才出现「使用统一账号登录」。
 
 | 项 | 值 |

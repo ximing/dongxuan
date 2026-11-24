@@ -1,0 +1,64 @@
+{
+  "origin": "https://dx.aimo.plus",
+  "issuer": "https://super-agent-auth.aimo.plus/realms/aimo-plus-prod",
+  "clientId": "dongxuan",
+  "audience": "dongxuan-api",
+  "redirectUri": "https://dx.aimo.plus/api/auth/oidc/callback",
+  "enabled": true,
+  "checks": [
+    {
+      "name": "email registration continues to work with OIDC enabled",
+      "pass": true
+    },
+    {
+      "name": "new email account is linked to shared identity",
+      "pass": true
+    },
+    {
+      "name": "registration provisioned exactly one Keycloak user",
+      "pass": true
+    },
+    {
+      "name": "temporary shared-only identity created",
+      "pass": true
+    },
+    {
+      "name": "authorization code flow reaches shared login form",
+      "pass": true
+    },
+    {
+      "name": "credentials submitted only to expected identity provider",
+      "pass": true
+    },
+    {
+      "name": "PKCE callback completes and returns to Dongxuan",
+      "pass": true
+    },
+    {
+      "name": "first shared login creates correct isolated app identity",
+      "pass": true
+    },
+    {
+      "name": "JIT identity is linked without a local password",
+      "pass": true
+    },
+    {
+      "name": "app access and refresh cookies are Secure and HttpOnly",
+      "pass": true
+    },
+    {
+      "name": "existing SSO session logs in with one click and no password form",
+      "pass": true
+    },
+    {
+      "name": "repeat shared login reuses same app identity",
+      "pass": true
+    }
+  ],
+  "cleanup": {
+    "appUsersRemoved": 2,
+    "keycloakUsersRemoved": 2,
+    "temporaryCredentialFileRemoved": true
+  },
+  "verification": "Isolated HTTPS cookie-jar flow verified real Keycloak form, PKCE callback, JIT and repeated SSO. Browser login entry was separately inspected."
+}

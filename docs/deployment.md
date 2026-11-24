@@ -7,7 +7,7 @@
 - [Dockerfile](../Dockerfile) 构建前端、DTO 和服务端，以非 root 用户运行生产依赖。`HOST=0.0.0.0` 仅在容器中设置，本地开发仍默认监听回环地址。
 - [GitHub Actions](../.github/workflows/deploy.yml) 在 main 业务代码变更或手动触发时运行：隔离 PostgreSQL 18 的完整后端测试、前端回归、类型检查 → 构建 amd64 镜像并推送 GHCR → 使用不可变 digest 部署 → HTTPS 健康检查。
 - [Compose](../deploy/compose.production.yml) 在 app 机 `/root/apps/dongxuan` 运行，宿主机 13014 映射容器 3040。数据库不随业务容器启动或重建。
-- 应用密码和签名密钥只在服务器 `.env`，示例见 [环境变量](../deploy/.env.production.example)。本次统一登录未配置，使用站内邮箱密码注册和登录。
+- 应用密码和签名密钥只在服务器 `.env`，示例见 [环境变量](../deploy/.env.production.example)。线上已启用生产 Keycloak 一键登录，并接通邮箱注册到统一账号的同步。
 - GitHub repository secrets：`DONGXUAN_DEPLOY_KEY`、`DONGXUAN_KNOWN_HOSTS`、`DONGXUAN_CI_PG_PASSWORD`（仅用于隔离 CI 库）。repository variables：`DONGXUAN_DEPLOY_HOST`、`DONGXUAN_DEPLOY_PORT`。镜像读写使用短期 `GITHUB_TOKEN`。
 - GitHub Runner 直连家庭 SSH 在握手阶段被重置，因此发布经入口机中转。`DONGXUAN_DEPLOY_HOST/PORT` 指向入口机；[中转脚本](../deploy/relay-ssh.sh) 从该机私有 `.env` 读取 app SSH 地址，再使用独立的第二跳密钥连接 app。两跳都固定服务器 host key，并带 `restrict` 与 forced command，只能部署本仓库合法镜像摘要；不允许任意命令、PTY 或端口转发。GHCR 登录信息仅存在部署期间的临时目录。
 
@@ -42,4 +42,14 @@ app 目录包含 `compose.production.yml`、`.env`、`image.env`、`deploy.sh`�
 - 入口机 nginx -t 通过后 reload；HTTP 301 跳转 HTTPS，域名健康接口返回 `{"ok":true}`。16 项线上检查覆盖注册、登录、Secure / HttpOnly cookie、鉴权、排盘持久化、四份 JSON 种子、模板保存和纯文本生成，全部通过。见[脱敏检查记录](validation/deployment-smoke.json)。
 - 真实浏览器验证登录和编辑器懒加载，中文「阳历月份范围」、工具栏「插入资料」及初始已保存状态正常；已查看[登录页](validation/screenshots/deployment-login.png)和[提示词编辑页](validation/screenshots/deployment-prompts.png)截图。图片使用临时验收账号，相关数据已清理。
 
-当前可以直接在登录页用邮箱密码注册。统一账号仍关闭，没有为用户创建或预设生产密码。
+当前可以在登录页点击「使用统一账号登录」，也可以用邮箱密码注册。没有为用户创建或预设生产密码。
+
+## 生产统一登录
+
+2026-11-24 已开启，使用现有 `aimo-plus-prod` realm 中独立的 `dongxuan` confidential client；仅允许回调 `https://dx.aimo.plus/api/auth/oidc/callback`，要求 PKCE S256，access token audience 为 `dongxuan-api`。注册关联属性 `dongxuan_user_id` 仅允许管理员查看和编辑。
+
+客户端密钥及注册同步需要的 OIDC_ADMIN_USER / OIDC_ADMIN_PASSWORD 只放在 app 机 `.env`。开启时已备份原 `.env`、Keycloak 用户属性配置和应用数据库，再重建业务容器；沿用已发布镜像。以后 Actions 发布继续使用该环境文件。
+
+12 项实际检查通过：邮箱注册与统一账号关联、真实授权码和 PKCE 回调、首次统一登录自动建号、Secure / HttpOnly Cookie、现有 SSO 会话免输密码再次进入、重复登录复用相同账号。完整回调通过隔离的 HTTPS cookie jar 验证；真实浏览器另确认登录页入口和排版。[检查结果](validation/oidc-enable.json)、[入口截图](validation/screenshots/oidc-login-enabled.png)。临时的两个东玄账号、两个 Keycloak 账号及验收密码文件均已清理。
+
+已有独立邮箱账号需要在设置中绑定统一账号；不会仅凭同邮箱自动合并身份。配置依据：[Keycloak 客户端与 PKCE](https://www.keycloak.org/docs/26.8.1/server_admin/)、[管理 API](https://www.keycloak.org/docs-api/latest/rest-api/)。
