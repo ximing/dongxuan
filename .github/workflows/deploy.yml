@@ -1,0 +1,125 @@
+name: Build and deploy Dongxuan
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/**
+      - packages/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig*.json
+      - Dockerfile
+      - .dockerignore
+      - deploy/**
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dongxuan-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: dongxuan_ci
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: dongxuan_test
+        ports: ["55439:5432"]
+        options: --health-cmd "pg_isready -U dongxuan_ci -d dongxuan_test" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      NODE_ENV: test
+      PG_HOST: 127.0.0.1
+      PG_PORT: "55439"
+      PG_USER: dongxuan_ci
+      PG_PASSWORD: isolated-ci-only
+      PG_DATABASE: dongxuan_test
+      PG_SSL: "false"
+      WEB_ORIGIN: http://127.0.0.1:5192
+      JWT_SECRET: isolated-ci-jwt-key-not-for-production
+      COOKIE_SECRET: isolated-ci-cookie-key-not-for-production
+      DONGXUAN_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm typecheck
+
+  image:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        id: build
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/ximing/dongxuan:${{ github.sha }}
+            ghcr.io/ximing/dongxuan:stable
+          labels: org.opencontainers.image.source=https://github.com/ximing/dongxuan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://dx.aimo.plus
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Install dedicated deployment key
+        env:
+          DEPLOY_KEY: ${{ secrets.DONGXUAN_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DONGXUAN_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/dongxuan
+          chmod 600 ~/.ssh/dongxuan
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Deploy verified image and back up database
+        env:
+          DEPLOY_HOST: ${{ vars.DONGXUAN_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DONGXUAN_DEPLOY_PORT }}
+          IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s\n' "$GHCR_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i ~/.ssh/dongxuan -p "$DEPLOY_PORT" "root@$DEPLOY_HOST" "deploy ghcr.io/ximing/dongxuan@$IMAGE_DIGEST"
+      - name: Verify HTTPS ingress
+        run: curl --fail --silent --show-error --retry 6 --retry-delay 5 --retry-all-errors --max-time 15 https://dx.aimo.plus/health
+      - name: Remove deployment key
+        if: always()
+        run: rm -f ~/.ssh/dongxuan

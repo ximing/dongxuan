@@ -30,6 +30,7 @@ if (nodeEnv !== 'development' && nodeEnv !== 'test' && nodeEnv !== 'production')
 
 export const config = {
   NODE_ENV: nodeEnv as 'development' | 'test' | 'production',
+  HOST: process.env.HOST ?? '127.0.0.1',
   PORT: intEnv('PORT', 3040),
   PG_HOST: required('PG_HOST'),
   PG_PORT: intEnv('PG_PORT', 25432),

@@ -1,0 +1,26 @@
+name: dongxuan
+services:
+  app:
+    image: ${DONGXUAN_IMAGE:?Set an immutable image digest in image.env}
+    container_name: dongxuan
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3040
+      SERVE_WEB: "1"
+    ports:
+      - "${DONGXUAN_BIND_HOST:-0.0.0.0}:${DONGXUAN_PORT:-13014}:3040"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

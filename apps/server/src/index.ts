@@ -84,7 +84,7 @@ if (isDirect) {
   app.log.info(backfill,'legacy snapshot backfill');
   if(backfill.failed>0){await closeDb();throw new Error('旧盘回填存在失败记录，服务暂未开放；请在维护窗口修复后重新执行回填');}
   logOidcStartup(app.log);
-  await app.listen({ port: config.PORT, host: '127.0.0.1' });
+  await app.listen({ port: config.PORT, host: config.HOST });
   const shutdown = async () => {
     await app.close();
     await closeDb();
