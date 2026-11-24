@@ -2,7 +2,7 @@
 
 个人排盘工具：紫微本命与运限、随手笔记、提示词模板。一张命盘就是一个人。紫微与梅花共用顶部导航；梅花目前保存原始占问和数字，起卦算法待规则确认。
 
-当前代码已按 [方案](docs/README.md) 与 [HTML 设计稿](docs/design/README.md) 实施到本地工程，尚未发布生产。
+当前代码已按 [方案](docs/README.md) 与 [HTML 设计稿](docs/design/README.md) 实施。生产站点：[dx.aimo.plus](https://dx.aimo.plus)。
 
 排盘用 [iztro](https://github.com/SylarLong/iztro)。账号沿用 Inwit 那套：本地邮箱密码，可选的共用 Keycloak 统一账号。
 
@@ -35,7 +35,9 @@ DONGXUAN_API_TARGET=http://127.0.0.1:3041 pnpm --filter @dongxuan/web dev
 
 ## 生产
 
-本轮未操作生产数据库或部署。现有库只有输入，升级必须先备份并安排维护窗口：版本化迁移添加旧写入屏障，冻结旧实现回填基础快照，核对成功/失败数量后才恢复访问；详细步骤及恢复方案见 [迁移说明](docs/implementation-local.md)。回填失败时 CLI 非零退出，服务拒绝开放 HTTP。
+生产使用 GitHub Actions 构建的 GHCR 镜像，推送 main 后自动检查、构建、备份数据库并部署；详见 [部署说明](docs/deployment.md)。首次部署使用独立空生产库，不导入本地数据，登录页可使用邮箱密码注册。
+
+升级既有数据库必须先备份并安排维护窗口：版本化迁移添加旧写入屏障，冻结旧实现回填基础快照，核对成功/失败数量后才恢复访问；详细步骤及恢复方案见 [迁移说明](docs/implementation-local.md)。回填失败时 CLI 非零退出，服务拒绝开放 HTTP。
 
 完成迁移演练并配置独立生产环境变量后：
 
