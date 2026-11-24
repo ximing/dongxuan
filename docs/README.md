@@ -1,6 +1,6 @@
 # 东玄方案
 
-更新：2026-11-23。状态：个人使用版方案与本地实现已接通，尚未发布生产。运行、测试与迁移步骤见[实现说明](implementation-local.md)。
+更新：2026-11-24。状态：个人使用版已部署至 [dx.aimo.plus](https://dx.aimo.plus)。GitHub Actions、生产备份与验证见[部署说明](deployment.md)；本地运行、测试与迁移步骤见[实现说明](implementation-local.md)。
 
 ## 当前确认的方向
 
@@ -22,6 +22,7 @@
 
 | 文档 | 内容 |
 | --- | --- |
+| [生产部署](deployment.md) | GitHub Actions 构建镜像、家庭服务器发布、数据库备份和 HTTPS 验证 |
 | [本地实现验收](implementation-validation.md) | 本地真实 API、数据库、浏览器流程与当前边界 |
 | [产品方案](product-plan.md) | 自用排盘、命盘、笔记和页面关系 |
 | [提示词与命盘引用](prompt-templates.md) | 模板、变量、连续月份、外部 Agent 复制及梅花扩展 |

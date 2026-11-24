@@ -10,8 +10,17 @@ fi
 exec 9>.deploy.lock
 flock -w 600 9
 compose=(docker compose --env-file image.env -f compose.production.yml)
-docker pull "$image"
-docker pull postgres:18
+pull_image() {
+  local attempt
+  for attempt in {1..5}; do
+    if docker pull "$1"; then return 0; fi
+    if [[ $attempt -lt 5 ]]; then sleep 3; fi
+  done
+  return 1
+}
+# Registry connectivity can fail transiently; finish pulls before stopping the current app.
+pull_image "$image"
+pull_image postgres:18
 mkdir -p backups
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 backup="backups/before-${stamp}.dump"

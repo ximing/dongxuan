@@ -17,6 +17,8 @@ app 目录包含 `compose.production.yml`、`.env`、`image.env`、`deploy.sh`�
 
 每次部署先拉取镜像，然后停止本应用写入，以 PostgreSQL 18 客户端备份目标生产库并验证归档目录。备份成功后才启动新镜像并运行事务化迁移及幂等回填。容器等待健康状态通过才算成功。备份失败时不迁移；新版本失败时停止应用，保留数据库备份，避免带着未知迁移状态自动启动旧版。
 
+服务器到 GHCR 曾出现瞬时 EOF；登录与拉取各最多重试五次，全部失败时保留当前应用运行，不进入停机或迁移阶段。SSH 启用连接尝试和保活；不会对失败迁移做盲目重试。
+
 入口配置见 [dx.aimo.plus.conf](../deploy/dx.aimo.plus.conf)。源站地址只放入口机 `/root/apps/nginx/sites/aimo.plus/dx-origin.upstream`，不提交。变更先通过 `docker exec openresty nginx -t`，再 reload。入口允许 6 MiB 请求，以覆盖富文本预览预算。
 
 运行配置文件更新时，先同步 `deploy/` 中的 Compose 和脚本到 app 目录；普通业务发布由 Actions 自动完成，不需要在服务器安装 Node 或构建代码。
