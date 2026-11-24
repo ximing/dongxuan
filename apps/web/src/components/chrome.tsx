@@ -18,13 +18,14 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
   return <div className="empty-state"><h3>{title}</h3>{children ? <p>{children}</p> : null}</div>;
 }
 
-export function CopyButton({ text, label = '复制文字' }: { text: string; label?: string }) {
+export function CopyButton({ text, label = '复制文字', disabled = false }: { text: string; label?: string; disabled?: boolean }) {
   const [status, setStatus] = useState('');
   return (
     <Button
       variant="default"
       size="sm"
       type="button"
+      disabled={disabled}
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setStatus('已复制');

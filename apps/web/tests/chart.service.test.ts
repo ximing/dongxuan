@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { ChartRecord, ViewChartSnapshot, ViewPreview, ZiweiFlowOptions, ZiweiQuery } from '@dongxuan/dto';
+import type { ChartRecord, HoroscopeLayer, ViewChartSnapshot, ViewPreview, ZiweiFlowOptions, ZiweiQuery } from '@dongxuan/dto';
 import { ChartService } from '../src/pages/chart/chart.service';
 
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
@@ -107,4 +107,93 @@ test('opening a saved view cancels an earlier year selection before it can repla
   assert.equal(s.saved?.id, 'saved');
   assert.equal(s.preview, null);
   assert.equal(s.level, 'decadal');
+});
+
+function dayPreview(level: 'yearly' | 'monthly' | 'daily', date = '2026-11-24'): ViewPreview {
+  const layer = (name: string, index: number): HoroscopeLayer => ({ name, index, heavenlyStem: '甲', earthlyBranch: '子', palaceNames: Array.from({ length: 12 }, (_, i) => `宫${i}`), stars: Array.from({ length: 12 }, () => []), mutagen: ['禄', '权', '科', '忌'] });
+  const result = preview({ mode: 'day', date, includeDaily: level === 'daily', level }, `${level}-${date}`);
+  result.result.day = { date, nominalAge: 34, text: result.result.text, decadal: layer('大限', 1), yearly: layer('流年', 2), age: layer('小限', 3), monthly: layer('流月', 4), daily: layer('流日', 5) };
+  return result;
+}
+
+test('switching flow levels retains the complete previous view until the new result arrives', async () => {
+  const s = service(), response = deferred<Response>();
+  s.level = 'yearly'; s.preview = dayPreview('yearly');
+  const oldLayer = s.flowLayer, oldText = s.text;
+  globalThis.fetch = async () => response.promise;
+  s.setLevel('monthly');
+  assert.equal(s.level, 'monthly');
+  assert.equal(s.displayLevel, 'yearly');
+  assert.equal(s.flowLayer, oldLayer);
+  assert.equal(s.text, oldText);
+  assert.equal(s.layers.length, 2);
+  assert.equal(s.preview, null);
+  assert.equal(s.viewUpdating, true);
+  assert.equal(s.viewActionsDisabled, true);
+  assert.equal(await s.saveView(), null);
+  response.resolve(json(dayPreview('monthly')));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.displayLevel, 'monthly');
+  assert.equal(s.flowLayer?.name, '流月');
+  assert.equal(s.layers.length, 3);
+  assert.equal(s.staleView, false);
+  assert.equal(s.viewActionsDisabled, false);
+});
+
+test('year metadata and preview requests share one retained display without a loading gap', async () => {
+  const s = service(), metadata = deferred<Response>(), result = deferred<Response>();
+  s.level = 'yearly'; s.preview = dayPreview('yearly');
+  const oldText = s.text;
+  globalThis.fetch = async url => String(url).includes('flow-options') ? metadata.promise : result.promise;
+  const selection = s.selectYear('2025');
+  assert.equal(s.text, oldText);
+  assert.equal(s.viewUpdating, true);
+  metadata.resolve(json({ ...options, year: 2025, yearDate: '2025-01-29', date: '2025-01-29' }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.text, oldText);
+  assert.equal(s.viewUpdating, true);
+  result.resolve(json(dayPreview('yearly', '2025-01-29'))); await selection;
+  assert.equal(s.activeDay?.date, '2025-01-29');
+  assert.equal(s.viewUpdating, false);
+});
+
+test('a failed update retains the previous display but cannot copy or save it as the new selection', async () => {
+  const s = service(); s.level = 'monthly'; s.preview = dayPreview('monthly');
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: '模拟计算失败' } }), { status: 503 });
+  await s.selectMonth('month-b');
+  assert.equal(s.text, 'monthly-2026-11-24');
+  assert.equal(s.flowLayer?.name, '流月');
+  assert.equal(s.staleView, true);
+  assert.equal(s.viewUpdating, false);
+  assert.equal(s.viewActionsDisabled, true);
+  assert.equal(await s.saveView(), null);
+  assert.ok(s.error);
+});
+
+test('returning to natal clears the retained overlay and rejects a late flow response', async () => {
+  const s = service(), response = deferred<Response>();
+  s.level = 'yearly'; s.preview = dayPreview('yearly');
+  globalThis.fetch = async () => response.promise;
+  const selection = s.selectYear('2025');
+  s.setLevel('natal');
+  assert.equal(s.flowLayer, undefined);
+  assert.equal(s.retainedView, null);
+  response.resolve(json({ ...options, year: 2025 })); await selection;
+  assert.equal(s.viewResult, undefined);
+  assert.equal(s.level, 'natal');
+});
+
+test('opening a saved view keeps the current display while the snapshot is loading', async () => {
+  const s = service(), response = deferred<Response>();
+  s.level = 'monthly'; s.preview = dayPreview('monthly');
+  const saved = { id: 'saved-decade', chartId: chart.id, query: { mode: 'decadal', startAge: 26 }, result: preview({ mode: 'decadal', startAge: 26 }).result } as ViewChartSnapshot;
+  globalThis.fetch = async () => response.promise;
+  const loading = s.loadSaved(chart.id, saved.id);
+  assert.equal(s.text, 'monthly-2026-11-24');
+  assert.equal(s.viewUpdating, true);
+  assert.equal(s.viewActionsDisabled, true);
+  response.resolve(json(saved)); await loading;
+  assert.equal(s.saved?.id, saved.id);
+  assert.equal(s.snapshotLoading, false);
+  assert.equal(s.viewActionsDisabled, false);
 });

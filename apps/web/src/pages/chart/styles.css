@@ -218,7 +218,6 @@
   .board-scroll.full-board { display:block }
   .chart-side .detail-list { grid-template-columns:1fr }
 }
-.calculation-status { font-size:11px;line-height:1.8;color:var(--accent);padding:10px 12px;margin:12px 0;background:var(--accent-soft);border-left:2px solid #9bd6b6;border-radius:3px }
 
 .flow-controls .decade-control .ui-select { min-width: 268px; max-width: 100%; }
 .flow-controls .month-control .ui-select { min-width: 172px; max-width: 100%; }
@@ -227,3 +226,26 @@
   .flow-controls .decade-control .ui-select { width:100%; min-width:0; max-width:100%; }
   .flow-controls .month-control .ui-select { min-width:0; width:170px; }
 }
+
+/* Keep the controls and progress feedback in place while a new view arrives. */
+.chart-tools { display:grid;grid-template-columns:auto minmax(0,1fr);min-height:64px;margin-bottom:0; }
+.chart-tools .flow-controls { justify-self:end;min-height:64px;margin-bottom:0;align-items:center; }
+.chart-tools .flow-controls-empty { width:100%;justify-content:center;background:transparent;border-color:transparent; }
+.chart-heading [aria-disabled=true] { opacity:.5;cursor:default; }
+.flow-status { display:flex;align-items:flex-start;gap:7px;min-height:44px;padding:8px 0;font-size:11px;line-height:18px;color:var(--muted); }
+.flow-status-indicator { flex:none;width:12px;height:12px;margin-top:3px;visibility:hidden;border:1.5px solid var(--line);border-top-color:var(--accent);border-radius:50%; }
+.flow-status-indicator.is-updating { visibility:visible;animation:flow-status-spin .8s linear infinite; }
+.flow-refresh-icon { display:none; }
+@keyframes flow-status-spin { to { transform:rotate(360deg) } }
+@media(max-width:1040px) {
+  .chart-tools { grid-template-columns:1fr;gap:12px; }
+  .chart-tools .flow-controls { display:grid;grid-template-columns:minmax(0,1fr) 32px;justify-self:stretch;align-items:end;align-content:center;gap:8px;min-height:86px;width:100%;padding:12px; }
+  .chart-tools .flow-controls:has(.month-control) { grid-template-columns:90px minmax(0,1fr) 32px; }
+  .chart-tools .flow-controls label { width:auto;min-width:0;align-items:stretch;flex-direction:column; }
+  .chart-tools .flow-controls .ui-select, .chart-tools .flow-controls .ui-picker { width:100%;min-width:0;max-width:100%; }
+  .chart-tools .flow-controls .flow-refresh { width:32px;height:32px;padding:7px; }
+  .flow-refresh-label { display:none; }
+  .flow-refresh-icon { display:block; }
+  .flow-status { min-height:56px; }
+}
+@media(prefers-reduced-motion:reduce) { .flow-status-indicator.is-updating { animation:none; } }

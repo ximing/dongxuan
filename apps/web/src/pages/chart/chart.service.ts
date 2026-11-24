@@ -1,5 +1,5 @@
 import { Service } from '@rabjs/react';
-import type { BirthProfile, ChartRecord, HoroscopeLayer, ViewChartSnapshot, ViewPreview, ZiweiDayResult, ZiweiFlowOptions, ZiweiQuery } from '@dongxuan/dto';
+import type { BirthProfile, ChartRecord, HoroscopeLayer, ViewChartSnapshot, ViewPreview, ZiweiDayResult, ZiweiFlowOptions, ZiweiQuery, ZiweiViewResult } from '@dongxuan/dto';
 import { getChart, getChartFlowOptions, getSnapshot, patchChart, previewChartView, reviseChart, saveChartView } from '@/api/charts';
 import { errorMessage, monthNow, today } from '@/lib/format';
 import { PagedList } from '@/lib/paged-list';
@@ -38,13 +38,37 @@ export class ChartService extends Service {
   _inFlight = false;
   _openVersion = 0;
   _savedVersion = 0;
+  retainedView: { result: ZiweiViewResult; level: ChartLevel } | null = null;
+  snapshotLoading = false;
 
   get base() {
     return this.chart?.baseSnapshot ?? null;
   }
 
   get viewResult() {
-    return this.saved?.result || this.preview?.result;
+    return this.saved?.result || this.preview?.result || this.retainedView?.result;
+  }
+
+  get displayLevel(): ChartLevel {
+    if (!this.saved && !this.preview && this.retainedView) return this.retainedView.level;
+    const query = this.saved?.query || this.preview?.result.query;
+    return query?.mode === 'day' ? query.level : query?.mode === 'decadal' ? 'decadal' : this.level;
+  }
+  get staleView(): boolean { return Boolean(this.retainedView && !this.saved && !this.preview); }
+  get viewUpdating(): boolean { return !this.savingView && (this.pending || this.periodsLoading || this.snapshotLoading); }
+  get viewActionsDisabled(): boolean { return this.staleView || this.pending || this.periodsLoading || this.snapshotLoading; }
+
+  get selectionNote(): string {
+    const options = this.flowOptions;
+    if (this.level === 'monthly' && this.selectedMonth) return `阳历 ${this.selectedMonth.from} 至 ${this.selectedMonth.to} · 闰月分上下半月`;
+    if (this.level === 'yearly') return '春节换年，选择后自动更新。';
+    if (this.level === 'daily') return '按阳历日期定位流日，选择后自动更新。';
+    if (this.level === 'decadal' && options) {
+      if (options.currentAge < 1) return '出生前默认首个区间 · 年龄为虚岁';
+      if (options.currentStartAge == null && options.currentAge >= options.decades[0].startAge) return '当前年份超出大限范围，默认最后一个原生区间。';
+      return `默认当前大限 · 虚岁 · 春节换年 · 共 ${options.decades.length} 组`;
+    }
+    return '春节年界 · 晚子归次日';
   }
 
   get activeDay(): ZiweiDayResult | undefined {
@@ -56,18 +80,18 @@ export class ChartService extends Service {
   }
 
   get layers(): HoroscopeLayer[] {
-    if (this.level === 'natal') return [];
+    if (this.displayLevel === 'natal') return [];
     if (this.viewResult?.decadal) return [this.viewResult.decadal.layer];
     const day = this.activeDay;
     if (!day) return [];
-    const count = ['decadal', 'yearly', 'monthly', 'daily'].indexOf(this.level) + 1;
+    const count = ['decadal', 'yearly', 'monthly', 'daily'].indexOf(this.displayLevel) + 1;
     return [day.decadal, day.yearly, day.monthly, day.daily].slice(0, count).filter((layer): layer is HoroscopeLayer => Boolean(layer));
   }
 
   get flowLayer(): HoroscopeLayer | undefined {
-    if (this.level === 'natal') return undefined;
-    if (this.level === 'decadal' && this.viewResult?.decadal) return this.viewResult.decadal.layer;
-    return this.dayLayer(this.level);
+    if (this.displayLevel === 'natal') return undefined;
+    if (this.displayLevel === 'decadal' && this.viewResult?.decadal) return this.viewResult.decadal.layer;
+    return this.dayLayer(this.displayLevel);
   }
 
   get selectedMonth() { return this.flowOptions?.months.find(month => month.from <= this.date && month.to >= this.date); }
@@ -110,13 +134,13 @@ export class ChartService extends Service {
   }
 
   async selectDecade(value: string): Promise<void> {
-    this.invalidate();
+    this.invalidate(true);
     this.selectedStartAge = value === 'childhood' ? null : Number(value);
     await this.calculateCurrent();
   }
 
   async selectYear(value: string): Promise<void> {
-    this.invalidate();
+    this.invalidate(true);
     const version = this._requestVersion;
     const previous = this.selectedMonth;
     const options = await this.loadFlowOptions(Number(value));
@@ -130,14 +154,14 @@ export class ChartService extends Service {
   async selectMonth(id: string): Promise<void> {
     const month = this.flowOptions?.months.find(item => item.id === id);
     if (!month) return;
-    this.invalidate();
+    this.invalidate(true);
     this.date = month.from;
     await this.calculateCurrent();
   }
 
   async selectDate(date: string): Promise<void> {
     if (!date) return;
-    this.invalidate();
+    this.invalidate(true);
     const version = this._requestVersion;
     this.date = date;
     if (await this.loadFlowOptions() && version === this._requestVersion) await this.calculateCurrent();
@@ -193,8 +217,10 @@ export class ChartService extends Service {
     const version = ++this._savedVersion;
     if (!snapshotId) {
       this.saved = null;
+      this.snapshotLoading = false;
       return;
     }
+    this.snapshotLoading = true;
     try {
       const saved = await getSnapshot(snapshotId);
       if (version !== this._savedVersion) return;
@@ -202,6 +228,7 @@ export class ChartService extends Service {
       this._requestVersion += 1;
       this.pending = false;
       this.saved = saved;
+      this.retainedView = null;
       this.preview = null;
       if (saved.query.mode === 'decadal') {
         this.selectedStartAge = saved.query.startAge;
@@ -223,25 +250,31 @@ export class ChartService extends Service {
       if (this.chart?.id === chartId && saved.query.mode === 'day') await this.loadFlowOptions();
     } catch (error) {
       if (version === this._savedVersion) this.error = errorMessage(error);
+    } finally {
+      if (version === this._savedVersion) this.snapshotLoading = false;
     }
   }
 
   cancelSaved(): void {
     this._savedVersion += 1;
+    this.snapshotLoading = false;
   }
 
-  invalidate(): void {
+  invalidate(keepDisplay = false): void {
+    this.retainedView = keepDisplay && this.viewResult ? { result: this.viewResult, level: this.displayLevel } : null;
     this._requestVersion += 1;
     this._savedVersion += 1;
     this.pending = false;
+    this.snapshotLoading = false;
     this.preview = null;
     this.saved = null;
     this.message = '';
-    this.segmentId = '';
+    if (!keepDisplay) this.segmentId = '';
   }
 
   setLevel(level: ChartLevel): void {
-    this.invalidate();
+    if (level === this.level) return;
+    this.invalidate(level !== 'natal');
     this.level = level;
     void this.calculateCurrent();
   }
@@ -352,6 +385,7 @@ export class ChartService extends Service {
       const next = await previewChartView(chartId, query);
       if (version !== this._requestVersion || chartId !== this.chart?.id) return;
       this.preview = next;
+      this.retainedView = null;
       this.saved = null;
       this.segmentId = '';
     } catch (error) {

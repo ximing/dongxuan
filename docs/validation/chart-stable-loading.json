@@ -1,0 +1,101 @@
+{
+  "desktop": {
+    "after": {
+      "boardTop": 331.28125,
+      "busy": "false",
+      "center": "紫微斗数 · 流日",
+      "copyDisabled": false,
+      "headingHeight": 54.9921875,
+      "saveDisabled": false,
+      "side": "2026-11-24 · 34 虚岁",
+      "statusHeight": 44,
+      "toolsHeight": 64
+    },
+    "before": {
+      "boardTop": 331.28125,
+      "busy": "false",
+      "center": "紫微斗数 · 流月",
+      "copyDisabled": false,
+      "headingHeight": 54.9921875,
+      "saveDisabled": false,
+      "side": "2026-11-24 · 34 虚岁",
+      "statusHeight": 44,
+      "toolsHeight": 64
+    },
+    "during": {
+      "boardTop": 331.28125,
+      "busy": "true",
+      "center": "紫微斗数 · 流月",
+      "copyDisabled": true,
+      "headingHeight": 54.9921875,
+      "saveDisabled": true,
+      "side": "2026-11-24 · 34 虚岁",
+      "statusHeight": 44,
+      "toolsHeight": 64
+    }
+  },
+  "mobile360": {
+    "after": {
+      "boardTop": 442.375,
+      "busy": "false",
+      "center": "紫微斗数 · 流月",
+      "copyDisabled": false,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    },
+    "before": {
+      "boardTop": 442.375,
+      "busy": "false",
+      "center": "紫微斗数 · 流年",
+      "copyDisabled": false,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    },
+    "during": {
+      "boardTop": 442.375,
+      "busy": "true",
+      "center": "紫微斗数 · 流年",
+      "copyDisabled": true,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    }
+  },
+  "mobile390": {
+    "after": {
+      "boardTop": 442.375,
+      "busy": "false",
+      "center": "紫微斗数 · 大限",
+      "copyDisabled": false,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    },
+    "before": {
+      "boardTop": 442.375,
+      "busy": "false",
+      "center": "紫微斗数 · 流日",
+      "copyDisabled": false,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    },
+    "during": {
+      "boardTop": 442.375,
+      "busy": "true",
+      "center": "紫微斗数 · 流日",
+      "copyDisabled": true,
+      "headingHeight": 96.4921875,
+      "overflow": false,
+      "statusHeight": 56,
+      "toolsHeight": 131.59375
+    }
+  }
+}

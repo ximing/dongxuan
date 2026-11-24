@@ -61,7 +61,7 @@ const ChartContent = observer(function ChartContent() {
   }
 
   function invalidate() {
-    service.invalidate();
+    service.invalidate(true);
     clearSnapshot();
   }
 
@@ -81,7 +81,7 @@ const ChartContent = observer(function ChartContent() {
   }
 
   return (
-    <main aria-busy={service.pending}>
+    <main aria-busy={service.viewUpdating}>
       {service.focus ? <Button variant="default" className="focus-exit" onClick={() => service.setFocus(false)}>退出专注</Button> : null}
       <Link className="back-link" to="/charts">‹ 全部命盘</Link>
       <div className="page-heading chart-heading">
@@ -90,10 +90,10 @@ const ChartContent = observer(function ChartContent() {
           <p>{[chart.relation, `${chart.gender} · ${chart.date} · ${chart.timeName}`, chart.archivedAt ? '已归档' : ''].filter(Boolean).join(' · ')}</p>
         </div>
         <div className="actions">
-          <CopyButton text={service.text} label="复制文字盘" />
-          <ButtonLink variant="default" size="sm" to={`/prompts?chart=${chart.id}&date=${service.date}&start=${service.start}&count=${service.count}${service.saved ? `&snapshot=${service.saved.id}` : ''}`}>提示词</ButtonLink>
+          <CopyButton text={service.text} label="复制文字盘" disabled={service.viewActionsDisabled} />
+          <ButtonLink variant="default" size="sm" aria-disabled={service.viewActionsDisabled} onClick={event => { if (service.viewActionsDisabled) event.preventDefault(); }} to={`/prompts?chart=${chart.id}&date=${service.date}&start=${service.start}&count=${service.count}${service.saved ? `&snapshot=${service.saved.id}` : ''}`}>提示词</ButtonLink>
           <Button variant="default" size="sm" onClick={() => service.toggleFocus()}>{service.focus ? '退出专注' : '专注看盘'}</Button>
-          {service.preview ? <Button variant="primary" size="sm" disabled={service.pending} onClick={() => void saveCurrent()}>存下这页</Button> : null}
+          <Button variant="primary" size="sm" disabled={!service.preview || service.viewActionsDisabled} onClick={() => void saveCurrent()}>存下这页</Button>
           <div className="chart-menu" ref={menuRef}>
             <Button variant="default" size="sm" aria-expanded={service.menu} aria-haspopup="menu" onClick={() => service.toggleMenu()}>更多 ▾</Button>
             {service.menu ? (
@@ -130,10 +130,12 @@ const ChartContent = observer(function ChartContent() {
           </div>
         </form>
       ) : null}
-      {service.pending ? <p className="calculation-status" role="status">正在计算并核对盘面资料，月份区间可能需要数秒，请稍候…</p> : null}
-      {service.message ? <p className="success-banner" role="status">{service.message}</p> : null}
       <div className="chart-top-tabs">
         {TABS.map(([value, label]) => <Button key={value} data-value={value} className={service.tab === value ? 'active' : ''} onClick={() => service.setTab(value)}>{label}</Button>)}
+      </div>
+      <div className="flow-status" role="status" aria-live="polite" aria-atomic="true">
+        <span className={`flow-status-indicator ${service.viewUpdating ? 'is-updating' : ''}`} aria-hidden="true" />
+        <span>{service.viewUpdating ? (service.staleView ? '正在更新，暂时显示上次结果…' : '正在更新盘面…') : service.savingView ? '正在保存当前视图…' : service.staleView ? '当前为上次结果，请更新盘面后再复制或保存。' : service.message || (service.tab === 'board' || service.tab === 'text' ? service.selectionNote : service.tab === 'months' ? '按实际流月拆段，跨阳历月保留重复引用。' : '')}</span>
       </div>
       {service.tab === 'board' || service.tab === 'text' ? (
         <>
@@ -168,13 +170,10 @@ const ChartContent = observer(function ChartContent() {
                     ) : null}
                   </>
                 )}
-                <Button variant="default" size="sm" disabled={service.pending || service.periodsLoading} onClick={() => void service.calculateCurrent()}>{service.pending ? '计算中…' : '更新盘面'}</Button>
+                <Button variant="default" size="sm" className="flow-refresh" aria-label="更新盘面" title="更新盘面" disabled={service.pending || service.periodsLoading} onClick={() => void service.calculateCurrent()}><svg className="flow-refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 11.6-1.6L20 8M4 16l2.4 2.6A7 7 0 0 0 18 17"/></svg><span className="flow-refresh-label">更新盘面</span></Button>
               </div>
-            ) : <span className="rule-label">{service.periodsLoading && service.level !== 'natal' ? '正在读取可选范围…' : '春节年界 · 晚子归次日'}</span>}
+            ) : <div className="flow-controls flow-controls-empty"><span className="rule-label">{service.level === 'natal' ? '本命十二宫' : '正在读取可选范围…'}</span></div>}
           </div>
-          {service.level === 'monthly' && service.selectedMonth ? <p className="view-query-note">对应阳历 {service.selectedMonth.from} 至 {service.selectedMonth.to} · 闰月按引擎规则区分上下半月</p> : null}
-          {service.level === 'yearly' && options ? <p className="view-query-note">以春节为流年分界，选择后自动更新盘面。</p> : null}
-          {service.level === 'decadal' && options ? <p className="view-query-note">{options.currentAge < 1 ? '当前日期在出生前，默认显示首个大限区间。' : options.currentStartAge == null && options.currentAge >= options.decades[0].startAge ? '当前年份已超出引擎大限范围，默认显示最后一个可计算区间。' : '默认选择当前年份所在大限；年龄为虚岁，年份以春节为界。'} 仅列出引擎原生的 {options.decades.length} 组范围。</p> : null}
           {service.periodsError ? <p className="view-query-note" role="alert">{service.periodsError} <Button size="sm" onClick={() => void service.loadFlowOptions().then(() => service.calculateCurrent())}>重试</Button></p> : null}
           {service.tab === 'board' ? (
             <div className="chart-layout">
@@ -206,7 +205,7 @@ const ChartContent = observer(function ChartContent() {
             </div>
           ) : (
             <section className="text-sheet">
-              <div className="text-top"><div><h2>文字盘</h2><p>{result?.decadal ? service.flowHeading : result ? '定位日期完整叠盘' : '本命十二宫'}</p></div><CopyButton text={service.text} /></div>
+              <div className="text-top"><div><h2>文字盘</h2><p>{result?.decadal ? service.flowHeading : result ? '定位日期完整叠盘' : '本命十二宫'}</p></div><CopyButton text={service.text} disabled={service.viewActionsDisabled} /></div>
               <pre>{service.text}</pre>
             </section>
           )}
@@ -220,7 +219,7 @@ const ChartContent = observer(function ChartContent() {
               <label>连续
                 <Select value={service.count} onValueChange={(value) => { service.setCount(Number(value)); invalidate(); }} options={Array.from({ length: 12 }, (_, index) => ({ value: index + 1, label: `${index + 1} 个月` }))} />
               </label>
-              <Button variant="primary" disabled={service.pending} onClick={() => void service.calculate({ mode: 'months', startMonth: service.start, count: service.count })}>{service.pending ? '计算中' : '查看月份区间'}</Button>
+              <Button variant="primary" disabled={service.pending} onClick={() => void service.calculate({ mode: 'months', startMonth: service.start, count: service.count })}>查看月份区间</Button>
             </div>
             <p className="view-query-note">按实际流月拆段，跨阳历月保留重复引用；春节、大限及年龄变化分别标明。</p>
           </div>
@@ -237,7 +236,7 @@ const ChartContent = observer(function ChartContent() {
               </div>
               <Board chart={base.result} layer={service.activeDay?.monthly} title={chart.title} />
               <section className="text-sheet section-space">
-                <div className="section-head"><h2>完整月份文字盘</h2><CopyButton text={service.text} /></div>
+                <div className="section-head"><h2>完整月份文字盘</h2><CopyButton text={service.text} disabled={service.viewActionsDisabled} /></div>
                 <pre>{service.text}</pre>
               </section>
             </>
