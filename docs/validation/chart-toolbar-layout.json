@@ -1,0 +1,80 @@
+{
+  "desktop1440": {
+    "after": {
+      "active": "流日",
+      "contentGap": 20,
+      "contentTop": 331.28125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 88
+    },
+    "before": {
+      "active": "流月",
+      "contentGap": 20,
+      "contentTop": 331.28125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 88
+    },
+    "during": {
+      "active": "流日",
+      "contentGap": 20,
+      "contentTop": 331.28125,
+      "disabledCopy": true,
+      "overflow": false,
+      "toolbarHeight": 88
+    }
+  },
+  "mobile360": {
+    "after": {
+      "active": "大限",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 166
+    },
+    "before": {
+      "active": "流月",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 166
+    },
+    "during": {
+      "active": "大限",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": true,
+      "overflow": false,
+      "toolbarHeight": 166
+    }
+  },
+  "mobile390": {
+    "after": {
+      "active": "流月",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 166
+    },
+    "before": {
+      "active": "流日",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": false,
+      "overflow": false,
+      "toolbarHeight": 166
+    },
+    "during": {
+      "active": "流月",
+      "contentGap": 16,
+      "contentTop": 436.78125,
+      "disabledCopy": true,
+      "overflow": false,
+      "toolbarHeight": 166
+    }
+  }
+}

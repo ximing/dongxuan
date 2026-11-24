@@ -80,6 +80,13 @@ const ChartContent = observer(function ChartContent() {
     );
   }
 
+  const viewStatus = (
+    <div className="flow-status" role="status" aria-live="polite" aria-atomic="true">
+      <span className={`flow-status-indicator ${service.viewUpdating ? 'is-updating' : ''}`} aria-hidden="true" />
+      <span>{service.viewUpdating ? (service.staleView ? '正在更新，暂时显示上次结果…' : '正在更新盘面…') : service.savingView ? '正在保存当前视图…' : service.staleView ? '当前为上次结果，请更新盘面后再复制或保存。' : service.message || (service.tab === 'board' || service.tab === 'text' ? service.selectionNote : service.tab === 'months' ? '按实际流月拆段，跨阳历月保留重复引用。' : '')}</span>
+    </div>
+  );
+
   return (
     <main aria-busy={service.viewUpdating}>
       {service.focus ? <Button variant="default" className="focus-exit" onClick={() => service.setFocus(false)}>退出专注</Button> : null}
@@ -133,47 +140,47 @@ const ChartContent = observer(function ChartContent() {
       <div className="chart-top-tabs">
         {TABS.map(([value, label]) => <Button key={value} data-value={value} className={service.tab === value ? 'active' : ''} onClick={() => service.setTab(value)}>{label}</Button>)}
       </div>
-      <div className="flow-status" role="status" aria-live="polite" aria-atomic="true">
-        <span className={`flow-status-indicator ${service.viewUpdating ? 'is-updating' : ''}`} aria-hidden="true" />
-        <span>{service.viewUpdating ? (service.staleView ? '正在更新，暂时显示上次结果…' : '正在更新盘面…') : service.savingView ? '正在保存当前视图…' : service.staleView ? '当前为上次结果，请更新盘面后再复制或保存。' : service.message || (service.tab === 'board' || service.tab === 'text' ? service.selectionNote : service.tab === 'months' ? '按实际流月拆段，跨阳历月保留重复引用。' : '')}</span>
-      </div>
+      {service.tab !== 'board' && service.tab !== 'text' ? viewStatus : null}
       {service.tab === 'board' || service.tab === 'text' ? (
         <>
-          <div className="chart-tools">
-            <div className="chart-layer-tabs">
-              {LEVELS.map(([value, label]) => (
-                <Button key={value} className={service.level === value ? 'active' : ''} disabled={service.savingView} onClick={() => { clearSnapshot(); service.setLevel(value); }}>{label}</Button>
-              ))}
-            </div>
-            {service.level !== 'natal' && options ? (
-              <div className="layer-controls flow-controls">
-                {service.level === 'decadal' ? (
-                  <label className="decade-control">大限区间
-                    <Select aria-label="大限区间" disabled={service.savingView} value={service.selectedStartAge == null ? 'childhood' : service.selectedStartAge} onValueChange={(value) => { clearSnapshot(); void service.selectDecade(value); }} options={[
-                      ...(service.childhoodDate || (options.currentAge >= 1 && options.currentAge < options.decades[0].startAge) ? [{ value: 'childhood', label: service.childhoodDate ? `童限 · ${service.childhoodDate}` : `当前童限 · ${options.currentAge} 虚岁` }] : []),
-                      ...options.decades.map(period => ({ value: period.startAge, label: `${period.range[0]}–${period.range[1]} 虚岁 · ${period.fromYear}–${period.toYear}${period.startAge === options.currentStartAge ? '（当前）' : ''}` })),
-                    ]} />
-                  </label>
-                ) : service.level === 'daily' ? (
-                  <label>阳历日期
-                    <DatePicker aria-label="流日日期" required disabled={service.savingView} value={service.date} min={options.minDate} max={options.maxDate} onValueChange={(value) => { clearSnapshot(); void service.selectDate(value); }} />
-                  </label>
-                ) : (
-                  <>
-                    <label>农历年
-                      <Select aria-label="流年年份" disabled={service.savingView} value={options.year} onValueChange={(value) => { clearSnapshot(); void service.selectYear(value); }} options={options.years.map(year => ({ value: year, label: `${year} 年` }))} />
-                    </label>
-                    {service.level === 'monthly' ? (
-                      <label className="month-control">流月
-                        <Select aria-label="流月月份" disabled={service.periodsLoading || service.savingView} value={service.selectedMonth?.id ?? ''} onValueChange={(value) => { clearSnapshot(); void service.selectMonth(value); }} options={options.months.map(month => ({ value: month.id, label: month.label }))} />
-                      </label>
-                    ) : null}
-                  </>
-                )}
-                <Button variant="default" size="sm" className="flow-refresh" aria-label="更新盘面" title="更新盘面" disabled={service.pending || service.periodsLoading} onClick={() => void service.calculateCurrent()}><svg className="flow-refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 11.6-1.6L20 8M4 16l2.4 2.6A7 7 0 0 0 18 17"/></svg><span className="flow-refresh-label">更新盘面</span></Button>
+          <section className="chart-workspace-toolbar" aria-label="运限选择">
+            <div className="chart-tools">
+              <div className="chart-layer-tabs" role="group" aria-label="盘面层级">
+                {LEVELS.map(([value, label]) => (
+                  <Button key={value} className={service.level === value ? 'active' : ''} aria-pressed={service.level === value} disabled={service.savingView} onClick={() => { clearSnapshot(); service.setLevel(value); }}>{label}</Button>
+                ))}
               </div>
-            ) : <div className="flow-controls flow-controls-empty"><span className="rule-label">{service.level === 'natal' ? '本命十二宫' : '正在读取可选范围…'}</span></div>}
-          </div>
+              {service.level !== 'natal' && options ? (
+                <div className="layer-controls flow-controls">
+                  {service.level === 'decadal' ? (
+                    <label className="decade-control"><span className="flow-control-label">大限区间</span>
+                      <Select aria-label="大限区间" disabled={service.savingView} value={service.selectedStartAge == null ? 'childhood' : service.selectedStartAge} onValueChange={(value) => { clearSnapshot(); void service.selectDecade(value); }} options={[
+                        ...(service.childhoodDate || (options.currentAge >= 1 && options.currentAge < options.decades[0].startAge) ? [{ value: 'childhood', label: service.childhoodDate ? `童限 · ${service.childhoodDate}` : `当前童限 · ${options.currentAge} 虚岁` }] : []),
+                        ...options.decades.map(period => ({ value: period.startAge, label: `${period.range[0]}–${period.range[1]} 虚岁 · ${period.fromYear}–${period.toYear}${period.startAge === options.currentStartAge ? '（当前）' : ''}` })),
+                      ]} />
+                    </label>
+                  ) : service.level === 'daily' ? (
+                    <label><span className="flow-control-label">阳历日期</span>
+                      <DatePicker aria-label="流日日期" required disabled={service.savingView} value={service.date} min={options.minDate} max={options.maxDate} onValueChange={(value) => { clearSnapshot(); void service.selectDate(value); }} />
+                    </label>
+                  ) : (
+                    <>
+                      <label className="year-control"><span className="flow-control-label">农历年</span>
+                        <Select aria-label="流年年份" disabled={service.savingView} value={options.year} onValueChange={(value) => { clearSnapshot(); void service.selectYear(value); }} options={options.years.map(year => ({ value: year, label: `${year} 年` }))} />
+                      </label>
+                      {service.level === 'monthly' ? (
+                        <label className="month-control"><span className="flow-control-label">流月</span>
+                          <Select aria-label="流月月份" disabled={service.periodsLoading || service.savingView} value={service.selectedMonth?.id ?? ''} onValueChange={(value) => { clearSnapshot(); void service.selectMonth(value); }} options={options.months.map(month => ({ value: month.id, label: month.label }))} />
+                        </label>
+                      ) : null}
+                    </>
+                  )}
+                  <Button variant="default" size="sm" className="flow-refresh" aria-label="更新盘面" title="更新盘面" disabled={service.pending || service.periodsLoading} onClick={() => void service.calculateCurrent()}><svg className="flow-refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 11.6-1.6L20 8M4 16l2.4 2.6A7 7 0 0 0 18 17"/></svg></Button>
+                </div>
+              ) : <div className="flow-controls flow-controls-empty"><span className="rule-label">{service.level === 'natal' ? '本命十二宫' : '正在读取可选范围…'}</span></div>}
+            </div>
+            {viewStatus}
+          </section>
           {service.periodsError ? <p className="view-query-note" role="alert">{service.periodsError} <Button size="sm" onClick={() => void service.loadFlowOptions().then(() => service.calculateCurrent())}>重试</Button></p> : null}
           {service.tab === 'board' ? (
             <div className="chart-layout">
