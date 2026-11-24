@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getPool } from './index.js';
+import type { PoolClient } from 'pg';
+import { importLegacyPrompt } from '@dongxuan/dto';
 const INITIAL = `
 CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email varchar(255) NOT NULL UNIQUE, password_hash varchar(255), display_name varchar(64), session_version integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS oidc_identities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, issuer varchar(512) NOT NULL, sub varchar(255) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
@@ -88,7 +90,22 @@ DROP INDEX IF EXISTS charts_one_profile_uidx;
 ALTER TABLE charts DROP COLUMN profile_id;
 DROP TABLE profiles;
 `;
-export async function migrate(): Promise<void> { const c = await getPool().connect(); try {
+async function migratePromptBodies(c: PoolClient): Promise<void> {
+    await c.query('ALTER TABLE prompt_templates ALTER COLUMN body TYPE jsonb USING to_jsonb(body)');
+    for (;;) {
+        const rows = await c.query("SELECT id,body FROM prompt_templates WHERE jsonb_typeof(body)='string' ORDER BY id LIMIT 100 FOR UPDATE");
+        if (!rows.rowCount) break;
+        for (const row of rows.rows) {
+            const body = importLegacyPrompt(row.body);
+            // Only the format changes; revision and user-visible timestamps are untouched.
+            await c.query('UPDATE prompt_templates SET body=$2::jsonb WHERE id=$1', [row.id, JSON.stringify(body)]);
+        }
+    }
+    await c.query("ALTER TABLE prompt_templates ADD CONSTRAINT prompt_templates_body_document CHECK ((jsonb_typeof(body)='object' AND jsonb_typeof(body->'schemaVersion')='number' AND body->>'schemaVersion'='1' AND jsonb_typeof(body->'doc')='object' AND body->'doc'->>'type'='doc') IS TRUE)");
+}
+
+/** Runs in the client's current schema; also enables isolated-schema migration verification. */
+export async function migrateWithClient(c: PoolClient): Promise<void> { try {
     await c.query('BEGIN');
     await c.query("SELECT pg_advisory_xact_lock(8602311)");
     await c.query('CREATE TABLE IF NOT EXISTS schema_migrations(version integer PRIMARY KEY,applied_at timestamptz NOT NULL DEFAULT now())');
@@ -99,15 +116,23 @@ export async function migrate(): Promise<void> { const c = await getPool().conne
             await c.query('INSERT INTO schema_migrations(version) VALUES($1)', [v]);
         }
     }
+    const promptFormat = await c.query('SELECT 1 FROM schema_migrations WHERE version=5');
+    if (!promptFormat.rowCount) {
+        await migratePromptBodies(c);
+        await c.query('INSERT INTO schema_migrations(version) VALUES(5)');
+    }
     await c.query('COMMIT');
 }
 catch (e) {
     await c.query('ROLLBACK');
     throw e;
 }
-finally {
-    c.release();
-} }
+}
+export async function migrate(): Promise<void> {
+    const c = await getPool().connect();
+    try { await migrateWithClient(c); }
+    finally { c.release(); }
+}
 const direct = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (direct) {
     migrate().then(() => console.log('数据库迁移完成')).finally(() => getPool().end()).catch(e => { console.error(e instanceof Error ? e.message : e); process.exitCode = 1; });

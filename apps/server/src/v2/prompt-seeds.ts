@@ -1,6 +1,6 @@
 // 用户原始框架的本地版本；不依赖设计稿或开发机路径。
-import type { PromptTemplateInput } from "@dongxuan/dto";
-export const PROMPT_SEEDS: Array<PromptTemplateInput & {
+import { promptTemplateInputSchema, type PromptTemplateInput } from "@dongxuan/dto";
+const LEGACY_PROMPT_SEEDS: Array<Omit<PromptTemplateInput, 'bodyJson'> & { body: string;
     seedKey: string;
 }> = [
     {
@@ -113,3 +113,4 @@ export const PROMPT_SEEDS: Array<PromptTemplateInput & {
         "dataRequirements": []
     }
 ];
+export const PROMPT_SEEDS = LEGACY_PROMPT_SEEDS.map(({ seedKey, ...template }) => ({ ...promptTemplateInputSchema.parse(template), seedKey }));

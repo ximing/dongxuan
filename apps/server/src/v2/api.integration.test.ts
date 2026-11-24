@@ -5,6 +5,7 @@ import { migrate } from '../db/migrate.js';
 import { getPool, closeDb } from '../db/index.js';
 import { backfillLegacy } from './charts.js';
 import { transaction } from './store.js';
+import { importLegacyPrompt } from '@dongxuan/dto';
 const run = process.env.DONGXUAN_INTEGRATION === '1';
 describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
     let app: Awaited<ReturnType<typeof buildApp>>, cookie = '', otherCookie = '', userId = '', otherId = '', chart: any, note: any, view: any;
@@ -48,7 +49,7 @@ describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
             await db.query(`INSERT INTO charts(user_id,title,relation,calendar,date_str,time_index,gender,archived_at,created_at,migration_status) SELECT $1,'分页命盘-'||n,CASE WHEN n%2=0 THEN '自己' ELSE '朋友' END,'solar','1993-03-01',8,'男',CASE WHEN n%3=0 THEN now() ELSE NULL END,timestamptz '2026-11-23 00:00:00+00' + n*interval '1 microsecond','ready' FROM generate_series(1,505) n`,[userId]);
             await db.query(`INSERT INTO notes(user_id,chart_id,body) SELECT $1,$2,'分页笔记-'||n FROM generate_series(1,4) n`,[userId,chart.id]);
             await db.query(`INSERT INTO meihua_drafts(user_id,question,number_a,number_b) SELECT $1,'分页占问-'||n,n,n+1 FROM generate_series(1,4) n`,[userId]);
-            await db.query(`INSERT INTO prompt_templates(user_id,system,title,body) SELECT $1,'ziwei','分页模板-'||n,'固定文本' FROM generate_series(1,4) n`,[userId]);
+            await db.query(`INSERT INTO prompt_templates(user_id,system,title,body) SELECT $1,'ziwei','分页模板-'||n,$2::jsonb FROM generate_series(1,4) n`,[userId,JSON.stringify(importLegacyPrompt('固定文本'))]);
         });
         for(let n=0;n<3;n++){const p=await req('POST',`/api/v2/charts/${chart.id}/views/preview`,{mode:'day',date:'2026-11-'+(10+n),includeDaily:true,level:'daily'});expect(p.status).toBe(200);expect((await req('POST',`/api/v2/charts/${chart.id}/views`,{previewToken:p.body.previewToken})).status).toBe(201);}
         const allPages=async(url:string,limit=2)=>{let cursor:string|null=null,hasMore=true;const items:any[]=[];let count=0;while(hasMore){const page=await req('GET',url+(url.includes('?')?'&':'?')+'limit='+limit+(cursor?'&cursor='+encodeURIComponent(cursor):''));expect(page.status,page.body.error?.message).toBe(200);expect(page.body.items.length).toBeLessThanOrEqual(limit);items.push(...page.body.items);hasMore=page.body.hasMore;cursor=page.body.nextCursor;expect(Boolean(cursor)).toBe(hasMore);expect(++count).toBeLessThan(30);}expect(new Set(items.map(x=>x.id)).size).toBe(items.length);return items;};

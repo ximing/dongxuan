@@ -1,4 +1,5 @@
 import { bigint, boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import type { PromptDocument } from '@dongxuan/dto';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -79,7 +80,7 @@ export const notes = pgTable('notes', {
 });
 export const promptTemplates = pgTable('prompt_templates', {
   id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(),
-  system: varchar('system', {length:16}).notNull(), title: varchar('title', {length:80}).notNull(), body: text('body').notNull(),
+  system: varchar('system', {length:16}).notNull(), title: varchar('title', {length:80}).notNull(), body: jsonb('body').$type<PromptDocument>().notNull(),
   inputsSchema: jsonb('inputs_schema').notNull().default([]), dataRequirements: jsonb('data_requirements').notNull().default([]),
   missingPolicy: text('missing_policy'), revision: integer('revision').notNull().default(1),
   variableSchemaVersion: integer('variable_schema_version').notNull().default(2), seedKey: varchar('seed_key', {length:64}),

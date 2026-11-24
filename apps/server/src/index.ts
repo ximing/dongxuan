@@ -38,6 +38,9 @@ export async function buildApp() {
   await app.register(cookie, { secret: config.COOKIE_SECRET });
   await app.register(cors, { origin: config.WEB_ORIGIN, credentials: true, methods:['GET','HEAD','POST','PATCH','PUT','DELETE','OPTIONS'] });
   app.setErrorHandler((err, req, reply) => {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+      return reply.code(413).send({ error: { code: 'PAYLOAD_TOO_LARGE', message: '提交内容过大，请缩短正文或本次填写后重试。' } });
+    }
     if (err instanceof AppError) {
       return reply.code(err.status).send({ error: { code: err.code, message: err.message } });
     }
@@ -45,7 +48,10 @@ export async function buildApp() {
       return reply.code(400).send({ error: { code: 'VALIDATION', message: err.issues.map(i=>i.path.join('.')+': '+i.message).join('；') } });
     }
     if(err instanceof Error && err.name==='ZiweiError')return reply.code(400).send({error:{code:'CALCULATION',message:err.message}});
-    req.log.error({ err }, 'request failed');
+    // PostgreSQL detail/message can include the entire failing row (including prompt text).
+    // Keep diagnostic categories without serializing raw errors or their causes.
+    const errorCode = err && typeof err === 'object' && 'code' in err && typeof err.code === 'string' && /^[a-z0-9_]{1,64}$/i.test(err.code) ? err.code : undefined;
+    req.log.error({ errorCode, errorName: err instanceof Error ? err.name : 'UnknownError' }, 'request failed');
     return reply.code(500).send({ error: { code: 'INTERNAL', message: '服务器出错' } });
   });
   app.get('/health', async () => ({ ok: true }));

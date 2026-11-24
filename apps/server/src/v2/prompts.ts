@@ -1,14 +1,14 @@
-import type { PromptPreviewInput, PromptPreview, PromptTemplateInput, ZiweiQuery, BaseChartSnapshot, ViewChartSnapshot, ZiweiViewResult } from '@dongxuan/dto';
+import { renderPromptDocument, type PromptPreviewInput, type PromptPreview, type PromptTemplateInput, type ZiweiQuery, type BaseChartSnapshot, type ViewChartSnapshot, type ZiweiViewResult } from '@dongxuan/dto';
 import { createView, createCurrentDecade } from '../domain/ziwei/index.js';
 import { AppError } from '../errors.js';
 import { readChart, assertEngine, snapshotRecord } from './charts.js';
 import { templateRecord } from './records.js';
 import { owned, transaction, json } from './store.js';
 import { PROMPT_SEEDS } from './prompt-seeds.js';
-import { templateChecks, runtimeValues, replaceOnce, fingerprint } from './prompt-engine.js';
+import { templateChecks, runtimeValues, fingerprint } from './prompt-engine.js';
 export async function ensureSeeds(userId: string) { await transaction(async (db) => { await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId + 'prompt-seed']); const r = await db.query('SELECT 1 FROM prompt_seed_state WHERE user_id=$1', [userId]); if (r.rowCount)
     return; for (const t of PROMPT_SEEDS)
-    await db.query('INSERT INTO prompt_templates(user_id,system,title,body,inputs_schema,data_requirements,missing_policy,seed_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,seed_key) DO NOTHING', [userId, t.system, t.title, t.body, json(t.inputsSchema), json(t.dataRequirements), t.missingPolicy ?? null, t.seedKey]); await db.query('INSERT INTO prompt_seed_state(user_id,seed_version) VALUES($1,2) ON CONFLICT DO NOTHING', [userId]); }); }
+    await db.query('INSERT INTO prompt_templates(user_id,system,title,body,inputs_schema,data_requirements,missing_policy,seed_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,seed_key) DO NOTHING', [userId, t.system, t.title, json(t.bodyJson), json(t.inputsSchema), json(t.dataRequirements), t.missingPolicy ?? null, t.seedKey]); await db.query('INSERT INTO prompt_seed_state(user_id,seed_version) VALUES($1,2) ON CONFLICT DO NOTHING', [userId]); }); }
 export async function buildPrompt(userId: string, input: PromptPreviewInput): Promise<PromptPreview> {
     let t: PromptTemplateInput | undefined = input.draft, revision: number | null = null;
     if (input.templateId) {
@@ -186,9 +186,9 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
     const unique = [...new Set(diagnostics)];
     if (unique.length)
         return { text: '', sources, coverage, fingerprint: fingerprint({ input, diagnostics: unique }), templateRevision: revision, diagnostics: unique };
-    let text = replaceOnce(t.body, values);
-    if (text.length > 200000)
-        return { text: '', sources, coverage, fingerprint: '', templateRevision: revision, diagnostics: ['展开结果超过 200,000 字符，请缩短范围'] };
+    let text: string;
+    try { text = renderPromptDocument(t.bodyJson, values, 200000); }
+    catch (error) { return { text: '', sources, coverage, fingerprint: '', templateRevision: revision, diagnostics: [error instanceof Error ? error.message : '无法生成完整提示词'] }; }
     text += `\n\n---\n资料来源：${sources.join('；') || '模板固定文本'}。\n模板：${t.title}${input.draft ? '（草稿' + (revision ? '，基于 revision ' + revision : '') + '）' : revision ? ' · revision ' + revision : '（草稿）'}。不自动包含命盘备注和私人笔记。`;
     return { text, sources, coverage, fingerprint: fingerprint({ template: t, revision, input, baseId: base?.id, text }), templateRevision: revision, diagnostics: [] };
 }
