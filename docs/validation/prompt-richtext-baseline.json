@@ -1,0 +1,302 @@
+{
+  "captured": "2026-11-24",
+  "phase": "before migration 5",
+  "scope": "isolated local synthetic QA account; hashes only, not full prompt text",
+  "parameters": {
+    "asOfDate": "2026-11-24",
+    "months": {
+      "startMonth": "2026-11",
+      "count": 3
+    },
+    "years": [
+      2026,
+      2027,
+      2028
+    ],
+    "actionContainsLiteralBraces": true
+  },
+  "templates": [
+    {
+      "id": "4f54b0be-29cf-4663-a381-0477ad982de8",
+      "title": "流月行动排期",
+      "revision": 1,
+      "status": 200,
+      "textLength": 11830,
+      "textHash": "4973b701aa1f4de4541dc936dd27e23a5267f15d14e8ca7e57570334005b5356",
+      "diagnostics": [],
+      "beforeMetadata": {
+        "id": "4f54b0be-29cf-4663-a381-0477ad982de8",
+        "revision": 1,
+        "createdAt": "2026-11-24T04:39:55.962Z",
+        "updatedAt": "2026-11-24T04:39:55.962Z",
+        "title": "流月行动排期",
+        "system": "ziwei",
+        "inputsSchema": [
+          {
+            "key": "action",
+            "type": "textarea",
+            "label": "近期拟定动作",
+            "required": true
+          }
+        ],
+        "dataRequirements": []
+      }
+    },
+    {
+      "id": "958910d8-abaa-4db8-95a9-44efca829a8b",
+      "title": "大限与多年选项比较",
+      "revision": 1,
+      "status": 200,
+      "textLength": 9399,
+      "textHash": "632a4c06ffc8c52eebe8c03945c7e9e19342abc12fffd862273b461a1ff580e6",
+      "diagnostics": [],
+      "beforeMetadata": {
+        "id": "958910d8-abaa-4db8-95a9-44efca829a8b",
+        "revision": 1,
+        "createdAt": "2026-11-24T04:39:55.962Z",
+        "updatedAt": "2026-11-24T04:39:55.962Z",
+        "title": "大限与多年选项比较",
+        "system": "ziwei",
+        "inputsSchema": [
+          {
+            "key": "status",
+            "type": "textarea",
+            "label": "当前状态",
+            "required": false
+          },
+          {
+            "key": "option_a",
+            "type": "textarea",
+            "label": "选项 A",
+            "required": false
+          },
+          {
+            "key": "option_b",
+            "type": "textarea",
+            "label": "选项 B",
+            "required": false
+          },
+          {
+            "key": "option_c",
+            "type": "textarea",
+            "label": "选项 C",
+            "required": false
+          },
+          {
+            "key": "criteria",
+            "type": "text",
+            "label": "核心权衡维度",
+            "required": false
+          }
+        ],
+        "dataRequirements": []
+      }
+    },
+    {
+      "id": "8dba2094-1f39-493e-8fc9-05af739c656d",
+      "title": "梅花完整卦例分析",
+      "revision": 1,
+      "status": 200,
+      "textLength": 0,
+      "textHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostics": [
+        "自动引用缺失：梅花起卦规则与计算引擎未接入，两个数字不能代替真实卦象",
+        "引用内容缺失：meihua.upper",
+        "引用内容缺失：meihua.lower",
+        "引用内容缺失：meihua.moving_line",
+        "引用内容缺失：meihua.primary",
+        "引用内容缺失：meihua.mutual",
+        "引用内容缺失：meihua.changed"
+      ],
+      "beforeMetadata": {
+        "id": "8dba2094-1f39-493e-8fc9-05af739c656d",
+        "revision": 1,
+        "createdAt": "2026-11-24T04:39:55.962Z",
+        "updatedAt": "2026-11-24T04:39:55.962Z",
+        "title": "梅花完整卦例分析",
+        "system": "meihua",
+        "inputsSchema": [
+          {
+            "key": "question",
+            "type": "textarea",
+            "label": "需要断事的问题",
+            "required": true
+          },
+          {
+            "key": "number_a",
+            "type": "integer",
+            "label": "第一个数字",
+            "required": true
+          },
+          {
+            "key": "number_b",
+            "type": "integer",
+            "label": "第二个数字",
+            "required": true
+          }
+        ],
+        "dataRequirements": []
+      }
+    },
+    {
+      "id": "0a58628b-8d11-420e-8469-640e3a7f77da",
+      "title": "梅花原始起卦请求",
+      "revision": 1,
+      "status": 200,
+      "textLength": 160,
+      "textHash": "83270de636f7ca5e12cb235a0f43785d7096a0fef5c4414519a1094b3b28fe55",
+      "diagnostics": [],
+      "beforeMetadata": {
+        "id": "0a58628b-8d11-420e-8469-640e3a7f77da",
+        "revision": 1,
+        "createdAt": "2026-11-24T04:39:55.962Z",
+        "updatedAt": "2026-11-24T04:39:55.962Z",
+        "title": "梅花原始起卦请求",
+        "system": "meihua",
+        "inputsSchema": [
+          {
+            "key": "question",
+            "type": "textarea",
+            "label": "需要断事的问题",
+            "required": true
+          },
+          {
+            "key": "number_a",
+            "type": "integer",
+            "label": "第一个数字",
+            "required": true
+          },
+          {
+            "key": "number_b",
+            "type": "integer",
+            "label": "第二个数字",
+            "required": true
+          }
+        ],
+        "dataRequirements": []
+      }
+    }
+  ],
+  "afterMigration": {
+    "results": [
+      {
+        "id": "4f54b0be-29cf-4663-a381-0477ad982de8",
+        "title": "流月行动排期",
+        "status": 200,
+        "textLength": 11830,
+        "textHash": "4973b701aa1f4de4541dc936dd27e23a5267f15d14e8ca7e57570334005b5356",
+        "textMatches": true,
+        "metadataMatches": true,
+        "diagnostics": [],
+        "bodyJsonVersion": 1
+      },
+      {
+        "id": "958910d8-abaa-4db8-95a9-44efca829a8b",
+        "title": "大限与多年选项比较",
+        "status": 200,
+        "textLength": 9399,
+        "textHash": "632a4c06ffc8c52eebe8c03945c7e9e19342abc12fffd862273b461a1ff580e6",
+        "textMatches": true,
+        "metadataMatches": true,
+        "diagnostics": [],
+        "bodyJsonVersion": 1
+      },
+      {
+        "id": "8dba2094-1f39-493e-8fc9-05af739c656d",
+        "title": "梅花完整卦例分析",
+        "status": 200,
+        "textLength": 0,
+        "textHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "textMatches": true,
+        "metadataMatches": true,
+        "diagnostics": [
+          "自动引用缺失：梅花起卦规则与计算引擎未接入，两个数字不能代替真实卦象",
+          "引用内容缺失：meihua.upper",
+          "引用内容缺失：meihua.lower",
+          "引用内容缺失：meihua.moving_line",
+          "引用内容缺失：meihua.primary",
+          "引用内容缺失：meihua.mutual",
+          "引用内容缺失：meihua.changed"
+        ],
+        "bodyJsonVersion": 1
+      },
+      {
+        "id": "0a58628b-8d11-420e-8469-640e3a7f77da",
+        "title": "梅花原始起卦请求",
+        "status": 200,
+        "textLength": 160,
+        "textHash": "83270de636f7ca5e12cb235a0f43785d7096a0fef5c4414519a1094b3b28fe55",
+        "textMatches": true,
+        "metadataMatches": true,
+        "diagnostics": [],
+        "bodyJsonVersion": 1
+      }
+    ],
+    "defaultLoadedTiptap": false
+  },
+  "independentApiChecks": {
+    "checks": [
+      {
+        "name": "JSON正文可通过真实API保存",
+        "pass": true
+      },
+      {
+        "name": "响应恢复JSON身份与只读投影",
+        "pass": true
+      },
+      {
+        "name": "普通双括号文字无需命盘即可原样生成",
+        "pass": true
+      },
+      {
+        "name": "双传JSON与文本一律拒绝",
+        "pass": true
+      },
+      {
+        "name": "旧式PATCH不能覆盖JSON正文",
+        "pass": true
+      },
+      {
+        "name": "变量资料节点保存",
+        "pass": true
+      },
+      {
+        "name": "真实变量节点缺命盘时阻断",
+        "pass": true
+      },
+      {
+        "name": "真实变量节点展开资料",
+        "pass": true
+      },
+      {
+        "name": "本次填写引用保存",
+        "pass": true
+      },
+      {
+        "name": "填写值单次输出且字面括号不激活",
+        "pass": true
+      },
+      {
+        "name": "错误引用节点不能保存为可用模板",
+        "pass": true
+      },
+      {
+        "name": "附加资料要求保存",
+        "pass": true
+      },
+      {
+        "name": "非正文的显式附加要求仍受校验",
+        "pass": true
+      },
+      {
+        "name": "明确legacy创建入口转换资料节点",
+        "pass": true
+      },
+      {
+        "name": "再次读取仍是JSON节点",
+        "pass": true
+      }
+    ],
+    "temporaryTemplates": 5
+  }
+}

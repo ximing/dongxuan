@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>提示词资料块 · 东玄</title>
+<style>
+:root{color-scheme:light;--bg:#f5f8f7;--ink:#23332d;--muted:#6d7c75;--line:#e0e9e5;--accent:#087f5b;--soft:#e8f6ef;--input:#eaf2fc;--blue:#355e87;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.7}button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}button:disabled{opacity:.45;cursor:not-allowed}a{color:var(--accent);text-decoration:none}h1,h2,h3,p{margin:0}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible,[contenteditable]:focus-visible{outline:2px solid #63bba0;outline-offset:3px}[hidden]{display:none!important}
+.top{background:white;border-bottom:1px solid var(--line)}.top>div{max-width:1280px;margin:auto;padding:0 26px;height:52px;display:flex;align-items:center;gap:38px}.brand{font-size:18px;font-weight:600;letter-spacing:2px}.seal{display:inline-grid;place-items:center;width:26px;height:26px;background:var(--accent);color:white;border-radius:6px;letter-spacing:0;margin-right:8px}.nav{display:flex;gap:26px;color:var(--muted);font-size:12px;height:100%;align-items:center}.nav strong{color:var(--accent);height:100%;display:flex;align-items:center;border-bottom:2px solid var(--accent);font-weight:600}.demo{margin-left:auto;font-size:10px;border:1px solid var(--line);padding:1px 7px;border-radius:4px;color:var(--muted)}
+main{max-width:1280px;margin:26px auto;padding:0 26px}.heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;gap:16px}h1{font-size:23px;font-weight:600}.heading p{font-size:12px;color:var(--muted);margin-top:5px}.heading a{font-size:12px}.shell{background:white;border:1px solid var(--line);border-radius:8px;overflow:clip}.modebar{height:62px;padding:14px 22px;display:flex;align-items:center;gap:18px;border-bottom:1px solid var(--line)}.modes{display:flex;border-radius:6px;background:#f0f4f2;padding:3px;font-size:12px}.modes>span{padding:5px 15px;color:var(--muted)}.modes>.active{background:white;color:var(--ink);font-weight:600;border-radius:4px;box-shadow:0 1px 3px #23332d12}.modebar>p{color:var(--muted);font-size:11px}.modebar>.right{margin-left:auto;color:var(--accent);font-size:11px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 308px}.writing{padding:24px;min-width:0}.template-name{font-size:17px;font-weight:600}.explain{margin:6px 0 20px;color:var(--muted);font-size:12px}.editor-frame{border:1px solid #d6e2db;border-radius:6px;overflow:clip}.toolbar{display:flex;align-items:center;gap:4px;padding:8px 10px;background:#f8fbf9;border-bottom:1px solid var(--line);flex-wrap:wrap}.tool{min-width:29px;height:28px;border-radius:4px;font-size:12px;padding:3px 8px}.tool:hover{background:var(--soft);color:var(--accent)}.tool.label{margin-left:auto;color:var(--accent);border:1px solid #d3e7dc}.tool-separator{width:1px;height:16px;background:var(--line);margin:0 5px}
+.editor{padding:22px 24px;min-height:465px;line-height:2;font-size:14px;outline:0;overflow-wrap:anywhere}.editor h2{font-size:18px;font-weight:600;line-height:1.7;margin:14px 0 9px}.editor p{margin:10px 0}.editor ul,.editor ol{padding-left:23px;margin:10px 0}.editor .variable{display:inline-block;vertical-align:baseline;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding:0 8px;border:1px solid #c5e3d4;border-radius:5px;background:var(--soft);color:var(--accent);font-size:12px;line-height:1.9;user-select:all;cursor:default}.editor .variable:before{content:"↗ ";font-size:11px}.editor .variable.manual{border-color:#d0e0f0;background:var(--input);color:var(--blue)}.editor .variable.manual:before{content:"✎ "}
+.help{font-size:11px;color:var(--muted);line-height:1.8}.editor-help{margin-top:10px}.editor-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px}.btn{display:inline-flex;justify-content:center;align-items:center;min-height:34px;padding:6px 13px;border:1px solid var(--line);background:white;border-radius:5px;font-size:12px}.btn:hover:not(:disabled){background:#f3f8f5;border-color:#b7cfc1}.btn.primary{background:var(--accent);color:white;border-color:var(--accent)}
+.inspector{border-left:1px solid var(--line);background:#fbfcfb;padding:24px 20px;min-width:0}.inspector h3{font-size:13px;font-weight:600}.inspector .help{margin-top:6px}.variable-buttons{margin-top:13px;display:grid;gap:0}.insert{display:flex;align-items:center;justify-content:space-between;text-align:left;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;gap:10px}.insert>small{color:var(--accent);font-size:10px}.insert:hover{color:var(--accent)}.inspector section+section{margin-top:26px}.field{display:flex;flex-direction:column;gap:7px;font-size:12px;margin-top:12px}input{min-height:35px;padding:7px 9px;border:1px solid #d6e2db;border-radius:5px;background:white;width:100%;font-size:12px}.field-identity{font-size:10px;color:var(--muted);margin-top:7px}
+.output{border-top:1px solid var(--line);padding:22px 24px;background:#fbfcfb}.output-head{display:flex;align-items:center;justify-content:space-between;gap:15px}.output-head>div{display:flex;align-items:center;gap:9px}.output h3{font-size:14px}.status{font-size:10px;background:#eef2ef;color:var(--muted);padding:2px 6px;border-radius:4px}.status.ready{background:var(--soft);color:var(--accent)}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.9 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;margin:14px 0 0;padding:16px;border:1px solid var(--line);border-radius:5px;background:white;max-height:350px;overflow:auto}.empty{padding:17px 0;font-size:12px;color:var(--muted)}details{margin-top:20px;font-size:12px}summary{color:var(--muted);cursor:pointer}.json-view{background:#f2f6f3;font-size:11px;max-height:300px}.footer{display:flex;justify-content:space-between;gap:18px;font-size:10px;color:var(--muted);margin-top:16px}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:10px 17px;background:#233f32;color:white;font-size:12px;border-radius:6px;max-width:calc(100% - 30px);z-index:5}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.inspector{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:24px}.inspector section+section{margin:0}.modebar>p{display:none}}
+@media(max-width:540px){main{padding:0 14px;margin-top:21px}.top>div{padding:0 16px;gap:24px;height:47px}.nav{gap:18px}.nav .hide{display:none}.brand{font-size:16px}.demo{font-size:9px}.heading{align-items:flex-start}.heading a{font-size:11px;white-space:nowrap;margin-top:7px}h1{font-size:21px}.heading p{font-size:11px;max-width:240px}.modebar{padding:11px 14px;height:56px;gap:8px}.modes>span{padding:5px 12px}.modebar>.right{font-size:10px}.writing{padding:18px 15px}.explain{font-size:11px}.editor{padding:15px;min-height:400px;font-size:16px}.editor h2{font-size:18px}.editor .variable{font-size:13px}.toolbar{gap:1px;padding:7px 6px}.tool{font-size:11px;padding:3px 6px;min-width:26px}.toolbar .label{margin-left:4px}.inspector{padding:20px 15px;display:block}.inspector section+section{margin-top:24px}input{font-size:16px}.output{padding:20px 15px}.editor-footer{align-items:flex-start}.footer{display:block}.footer>span{display:block;margin-top:7px}}
+</style>
+</head>
+<body>
+<header class="top"><div><span class="brand"><span class="seal">玄</span>东玄</span><nav class="nav"><span class="hide">紫微斗数</span><span class="hide">命盘</span><strong>提示词</strong></nav><span class="demo">交互示意</span></div></header>
+<main>
+  <header class="heading"><div><h1>用资料块写提示词</h1><p>正文直接显示中文资料名称，生成时自动填入对应内容。</p></div><a href="../prompt-richtext-plan.md">方案说明</a></header>
+  <div class="shell">
+    <div class="modebar"><div class="modes"><span>使用模板</span><span class="active">编辑模板</span></div><p>保留原来的使用流程，编辑时更容易读懂</p><span class="right">富文本方案</span></div>
+    <div class="grid">
+      <section class="writing">
+        <h2 class="template-name">流月行动排期</h2><p class="explain">资料与本次填写项都可以嵌在一句话中，和正文一起编辑。</p>
+        <div class="editor-frame">
+          <div class="toolbar" aria-label="文本格式">
+            <button class="tool" data-format="paragraph">正文</button><button class="tool" data-format="heading">标题</button><span class="tool-separator"></span>
+            <button class="tool" data-command="bold" aria-label="粗体"><b>B</b></button><button class="tool" data-command="italic" aria-label="斜体"><i>I</i></button><button class="tool" data-command="insertUnorderedList" aria-label="无序列表">• 列表</button><button class="tool" data-command="undo" aria-label="撤销">↶</button><button class="tool" data-command="redo" aria-label="重做">↷</button>
+            <button class="tool label" id="insert-range">＋ 插入资料</button>
+          </div>
+          <div class="editor" id="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="模板正文">
+            <h2>分析目标</h2><p>请基于 <span class="variable" contenteditable="false" data-variable="ziwei.natal">本命文字盘</span>，分析 <span class="variable" contenteditable="false" data-variable="range.label">阳历月份范围</span> 内的行动安排。</p>
+            <h2>资料与问题</h2><p>当前运限：<span class="variable" contenteditable="false" data-variable="ziwei.decade_current">当前大限</span></p><p>窗口内的资料：<span class="variable" contenteditable="false" data-variable="ziwei.months">连续流月资料</span></p><p>这次计划：<span class="variable manual" contenteditable="false" data-variable="input.action">近期拟定动作</span></p>
+            <h2>输出要求</h2><ul><li>先给出盘面依据，再说明行动建议。</li><li><strong>不自行补造缺失资料。</strong>请明确说明需要补充的信息。</li></ul>
+          </div>
+        </div>
+        <p class="help editor-help">绿色是自动带入的资料，蓝色是每次需要填写的内容。可以修改正文、插入资料，并查看生成后的文本。</p>
+        <div class="editor-footer"><span class="help">示例资料用于体验，不包含真实排盘结果。</span><button class="btn primary" id="generate">生成文本预览</button></div>
+        <details id="json-details"><summary>查看 JSON 存储结构示意</summary><pre class="json-view" id="json-view"></pre></details>
+      </section>
+      <aside class="inspector">
+        <section><h3>插入资料</h3><p class="help">先把光标放在正文中，再选择资料。</p><div class="variable-buttons" id="variable-buttons"></div></section>
+        <section><h3>本次填写项</h3><p class="help">改中文名称后，正文中的资料块会同步更新。</p>
+          <label class="field">填写项名称<input id="field-label" value="近期拟定动作" maxlength="80"></label><p class="field-identity">已插入的引用保持关联</p>
+          <label class="field">本次示例回答<input id="field-value" value="准备换工作，兼顾成长空间与收入稳定性。"></label>
+        </section>
+      </aside>
+    </div>
+    <section class="output" aria-label="纯文本结果"><div class="output-head"><div><h3>最终可复制的 prompt</h3><span class="status" id="status">待生成</span></div><button class="btn" id="copy" disabled>复制文本</button></div><p class="empty" id="empty">生成后，中文资料块会展开为对应资料。结果只包含文字。</p><pre id="text" tabindex="0" hidden></pre></section>
+  </div>
+  <footer class="footer"><span>方案演示使用原生可编辑区域展示交互，正式开发接入 Tiptap；JSON 为存储形状示意。</span><span>未连接数据库、排盘或 AI 服务。</span></footer>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const labels={'ziwei.natal':'本命文字盘','range.label':'阳历月份范围','ziwei.decade_current':'当前大限','ziwei.months':'连续流月资料','input.action':'近期拟定动作'};
+const sample={'ziwei.natal':'[演示资料位置：完整本命文字盘]','range.label':'2026 年 11 月至 2027 年 1 月（阳历）','ziwei.decade_current':'[演示资料位置：基准日所在的完整大限]','ziwei.months':'[演示资料位置：目标月份内全部实际流月资料]'};
+let selection=null,ready=false,timer;
+function notify(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(timer);timer=setTimeout(()=>$('toast').hidden=true,3000)}
+function remember(){const s=window.getSelection();if(s&&s.rangeCount&&$('editor').contains(s.getRangeAt(0).commonAncestorContainer))selection=s.getRangeAt(0).cloneRange()}
+document.addEventListener('selectionchange',remember);
+function invalidate(){ready=false;$('copy').disabled=true;$('status').textContent=$('text').hidden?'待生成':'待更新';$('status').className='status';updateJSON()}
+function renderButtons(){$('variable-buttons').replaceChildren();for(const [name,label]of Object.entries(labels)){const button=document.createElement('button');button.className='insert';const text=document.createElement('span');text.textContent=label;const hint=document.createElement('small');hint.textContent='插入';button.append(text,hint);button.addEventListener('click',()=>insert(name));$('variable-buttons').append(button)}}
+function insert(name){const editor=$('editor'),chip=document.createElement('span');chip.className='variable'+(name.startsWith('input.')?' manual':'');chip.contentEditable='false';chip.dataset.variable=name;chip.textContent=labels[name];editor.focus();const s=window.getSelection(),range=selection&&editor.contains(selection.commonAncestorContainer)?selection:document.createRange();if(!selection||!editor.contains(selection.commonAncestorContainer)){range.selectNodeContents(editor);range.collapse(false)}range.deleteContents();range.insertNode(chip);range.setStartAfter(chip);range.collapse(true);s.removeAllRanges();s.addRange(range);remember();invalidate()}
+function inlines(node,marks=[]){const out=[];for(const child of node.childNodes){if(child.nodeType===Node.TEXT_NODE){if(child.textContent)out.push({type:'text',text:child.textContent,...(marks.length?{marks}: {})});continue}if(child.nodeType!==Node.ELEMENT_NODE)continue;if(child.dataset.variable){out.push({type:'promptVariable',attrs:{name:child.dataset.variable}});continue}if(child.tagName==='BR'){out.push({type:'hardBreak'});continue}const next=[...marks];if(['STRONG','B'].includes(child.tagName)&&!next.some(m=>m.type==='bold'))next.push({type:'bold'});if(['EM','I'].includes(child.tagName)&&!next.some(m=>m.type==='italic'))next.push({type:'italic'});out.push(...inlines(child,next))}return out}
+function block(node){if(node.nodeType===Node.TEXT_NODE)return node.textContent.trim()?{type:'paragraph',content:[{type:'text',text:node.textContent}]}:null;if(node.dataset.variable)return{type:'paragraph',content:[{type:'promptVariable',attrs:{name:node.dataset.variable}}]};if(['UL','OL'].includes(node.tagName))return{type:node.tagName==='UL'?'bulletList':'orderedList',...(node.tagName==='OL'?{attrs:{start:Number(node.start)||1}}:{}),content:[...node.children].map(li=>({type:'listItem',content:[{type:'paragraph',content:inlines(li)}]}))};const heading=/^H[1-3]$/.test(node.tagName);return{type:heading?'heading':'paragraph',...(heading?{attrs:{level:Number(node.tagName.slice(1))}}:{}),content:inlines(node)}}
+function getJSON(){return{schemaVersion:1,doc:{type:'doc',content:[...$('editor').childNodes].map(block).filter(Boolean)}}}
+function updateJSON(){$('json-view').textContent=JSON.stringify(getJSON(),null,2)}
+function inlineText(nodes){return(nodes||[]).map(n=>n.type==='promptVariable'?(n.attrs.name==='input.action'?$('field-value').value:sample[n.attrs.name]||'[未识别资料]'):n.type==='hardBreak'?'\n':n.text||'').join('')}
+function textOf(node){if(['paragraph','heading'].includes(node.type))return inlineText(node.content);if(['bulletList','orderedList'].includes(node.type))return node.content.map((li,i)=>(node.type==='bulletList'?'- ':((node.attrs?.start||1)+i)+'. ')+li.content.map(textOf).join('\n')).join('\n');return(node.content||[]).map(textOf).join('\n\n')}
+$('editor').addEventListener('input',invalidate);
+$('editor').addEventListener('paste',event=>{event.preventDefault();document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));invalidate()});
+document.querySelectorAll('[data-command],[data-format]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.addEventListener('click',()=>{const s=window.getSelection();if(selection){s.removeAllRanges();s.addRange(selection)}$('editor').focus();if(button.dataset.format)document.execCommand('formatBlock',false,button.dataset.format==='heading'?'h2':'p');else document.execCommand(button.dataset.command);remember();invalidate()})});
+$('insert-range').addEventListener('mousedown',e=>e.preventDefault());$('insert-range').onclick=()=>insert('range.label');
+$('field-label').oninput=()=>{labels['input.action']=$('field-label').value.trim()||'未命名填写项';document.querySelectorAll('[data-variable="input.action"]').forEach(el=>el.textContent=labels['input.action']);renderButtons();invalidate()};
+$('field-value').oninput=invalidate;
+$('generate').onclick=()=>{const text=textOf(getJSON().doc);$('text').textContent=text;$('text').hidden=false;$('empty').hidden=true;ready=true;$('copy').disabled=false;$('status').textContent='已就绪';$('status').className='status ready';notify('纯文本预览已生成。')};
+$('copy').onclick=async()=>{if(!ready)return;try{const copied=await Promise.race([navigator.clipboard.writeText($('text').textContent).then(()=>true),new Promise(resolve=>setTimeout(()=>resolve(false),1800))]);if(!copied)throw Error('copy timeout');notify('已复制纯文本。')}catch{const r=document.createRange();r.selectNodeContents($('text'));const s=window.getSelection();s.removeAllRanges();s.addRange(r);notify('已选中全文，可手动复制。')}};
+renderButtons();updateJSON();
+</script>
+</body>
+</html>

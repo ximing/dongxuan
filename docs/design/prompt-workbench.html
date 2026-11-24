@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>提示词 · 东玄交互优化演示</title>
+  <style>
+    :root { color-scheme:light; --bg:#f4f7f6; --paper:#fff; --ink:#23332d; --muted:#697a72; --line:#e0e9e5; --green:#087f5b; --soft:#e8f6ef; --amber:#8b5d19; --amber-bg:#fff7e8; --red:#b83d42; --radius:8px; --sans:"PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.6 var(--sans); }
+    button,input,select,textarea { font:inherit; color:inherit; }
+    button,a,input,select,textarea,summary { -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.44; }
+    button { border:0; background:none; }
+    a { color:var(--green); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    :focus-visible { outline:3px solid #63bba0; outline-offset:3px; }
+    [hidden] { display:none !important; }
+    h1,h2,h3,p { margin:0; }
+    svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+    .topbar { background:var(--paper); border-bottom:1px solid var(--line); }
+    .topbar-inner { max-width:1440px; padding:0 32px; margin:auto; height:58px; display:flex; align-items:center; gap:40px; }
+    .brand { display:flex; align-items:center; gap:9px; font-size:18px; font-weight:650; letter-spacing:2px; }
+    .brand-mark { background:var(--green); color:white; width:28px; height:28px; display:grid; place-items:center; border-radius:7px; font-size:17px; letter-spacing:0; }
+    .nav { display:flex; height:100%; gap:29px; align-items:center; color:var(--muted); font-size:13px; }
+    .nav span { height:100%; display:flex; align-items:center; position:relative; }
+    .nav .current { color:var(--green); font-weight:600; }
+    .nav .current:after { content:""; position:absolute; bottom:0; height:3px; background:var(--green); left:0; right:0; border-radius:3px 3px 0 0; }
+    .demo-mark { margin-left:auto; color:var(--muted); font-size:11px; border:1px solid var(--line); padding:2px 8px; border-radius:4px; white-space:nowrap; }
+    main { max-width:1440px; margin:auto; padding:27px 32px 22px; }
+    .page-head { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:23px; }
+    h1 { font-size:24px; letter-spacing:-.5px; font-weight:600; }
+    .page-head p { color:var(--muted); font-size:13px; margin-top:4px; }
+    .page-links { display:flex; gap:18px; align-items:center; font-size:12px; }
+    .btn { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-height:36px; padding:7px 13px; border:1px solid var(--line); border-radius:6px; background:white; white-space:nowrap; font-size:13px; font-weight:500; }
+    .btn:hover:not(:disabled) { border-color:#a8bfb4; background:#f8fbf9; }
+    .btn.primary { background:var(--green); border-color:var(--green); color:white; }
+    .btn.primary:hover:not(:disabled) { background:#066b4d; }
+    .btn.quiet { border-color:transparent; background:transparent; color:var(--muted); }
+    .btn.small { min-height:29px; padding:3px 9px; font-size:12px; }
+    .icon-btn { width:30px; height:30px; border-radius:5px; display:inline-grid; place-items:center; color:var(--muted); flex-shrink:0; }
+    .icon-btn:hover { background:var(--soft); color:var(--green); }
+    .workspace { display:grid; grid-template-columns:225px minmax(0,1fr); background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); min-height:690px; overflow:clip; }
+    .library { background:#f9fbfa; border-right:1px solid var(--line); padding:20px 12px 14px; display:flex; flex-direction:column; }
+    .library-title { padding:0 8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .library-title h2 { font-size:14px; font-weight:600; }
+    .count { font-size:11px; color:var(--muted); background:#edf2ef; padding:1px 6px; border-radius:4px; margin-left:6px; }
+    .search { display:flex; align-items:center; position:relative; }
+    .search svg { position:absolute; left:10px; width:15px; color:var(--muted); }
+    .search input { padding-left:32px; height:34px; background:white; font-size:12px; }
+    .library .search { margin:0 5px 12px; }
+    .filters { display:flex; gap:3px; padding:0 5px; margin-bottom:20px; }
+    .filter { padding:4px 10px; font-size:11px; color:var(--muted); border-radius:5px; }
+    .filter.active { background:#e7eeea; color:var(--ink); font-weight:600; }
+    .group-label { color:#7b8982; font-size:11px; padding:0 10px 8px; margin-top:7px; }
+    .template { display:block; width:100%; padding:12px 12px; border-radius:6px; text-align:left; margin-bottom:3px; border:1px solid transparent; }
+    .template:hover { background:#eef4f0; }
+    .template.active { background:var(--soft); border-color:#cde7db; }
+    .template-title { display:flex; align-items:center; justify-content:space-between; gap:5px; font-size:13px; font-weight:550; }
+    .template.active .template-title { color:var(--green); }
+    .template-desc { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.6; }
+    .template-tag { display:block; color:#7f8b85; font-size:10px; margin-top:8px; }
+    .star { font-size:13px; color:#9a7b39; }
+    .draft-dot { width:5px; height:5px; background:var(--amber); border-radius:50%; display:inline-block; margin-left:4px; vertical-align:middle; }
+    .library-bottom { margin-top:auto; padding:24px 8px 0; }
+    .library-bottom p { font-size:11px; color:var(--muted); line-height:1.8; margin-top:12px; }
+    .library-bottom .btn { width:100%; }
+    .empty-library { padding:10px; font-size:12px; color:var(--muted); }
+    .work-area { min-width:0; }
+    .work-toolbar { display:flex; justify-content:space-between; align-items:center; padding:15px 23px; border-bottom:1px solid var(--line); gap:10px; }
+    .mode-switch { display:flex; padding:3px; border-radius:6px; background:#f0f4f2; }
+    .mode-switch button { padding:5px 16px; border-radius:4px; color:var(--muted); font-size:12px; }
+    .mode-switch button.active { background:white; color:var(--ink); box-shadow:0 1px 3px #23332d12; font-weight:600; }
+    .toolbar-note { font-size:11px; color:var(--muted); }
+    .work-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.93fr); }
+    .fill-pane { padding:25px 25px 0; min-width:0; }
+    .template-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    h2 { font-size:18px; font-weight:600; }
+    .sub { color:var(--muted); font-size:12px; line-height:1.8; margin-top:6px; }
+    .section { margin-top:27px; }
+    .section-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:11px; gap:10px; }
+    h3 { font-size:13px; font-weight:600; }
+    .section-heading span { font-size:11px; color:var(--muted); }
+    .field { display:flex; flex-direction:column; gap:7px; margin-bottom:17px; min-width:0; }
+    .field > span:first-child { font-size:12px; font-weight:500; }
+    .required { color:var(--red); margin-left:3px; }
+    .optional { color:var(--muted); font-size:10px; font-weight:400; margin-left:5px; }
+    input,select,textarea { width:100%; border:1px solid #d7e2dc; border-radius:5px; background:white; padding:9px 10px; outline-offset:1px; }
+    input:hover,select:hover,textarea:hover { border-color:#aabeb2; }
+    input,select { min-height:38px; font-size:13px; }
+    textarea { resize:vertical; font-size:13px; line-height:1.85; min-height:98px; }
+    textarea::placeholder,input::placeholder { color:#95a198; }
+    .help { color:var(--muted); font-size:11px; font-weight:400; }
+    .chart-meta { display:flex; gap:7px; align-items:center; color:var(--green); font-size:11px; margin-top:-9px; }
+    .chart-meta svg { width:13px; height:13px; }
+    .range-row { display:grid; grid-template-columns:minmax(0,1fr) 116px; gap:10px; }
+    .range-summary { margin-top:-9px; font-size:11px; color:var(--muted); }
+    .chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .chip { font-size:11px; color:var(--muted); background:#f4f7f5; border-radius:4px; padding:3px 7px; }
+    details { font-size:12px; }
+    summary { cursor:pointer; color:var(--muted); }
+    details[open] summary { margin-bottom:11px; }
+    .source-details { margin-top:14px; }
+    .source-details .chips { margin:10px 0; }
+    .source-details .field { margin-top:14px; margin-bottom:0; }
+    .divider { height:1px; background:var(--line); margin:24px 0; }
+    .example-button { color:var(--green); font-size:11px; padding:2px 0; }
+    .form-footer { border-top:1px solid var(--line); margin:25px -25px 0; padding:16px 25px 19px; }
+    .action-row { display:flex; gap:8px; align-items:center; }
+    .action-row .primary { flex:1; min-height:41px; }
+    .footer-note { font-size:10px; text-align:center; margin-top:9px; color:var(--muted); }
+    .result-pane { background:#fbfcfb; border-left:1px solid var(--line); min-width:0; padding:0 22px 21px; display:flex; flex-direction:column; }
+    .result-toolbar { display:flex; justify-content:space-between; align-items:center; min-height:67px; border-bottom:1px solid var(--line); gap:8px; }
+    .result-toolbar h3 { font-size:13px; }
+    .result-title { display:flex; gap:8px; align-items:center; }
+    .status { font-size:10px; padding:2px 6px; border-radius:4px; background:#edf1ee; color:var(--muted); }
+    .status.ready { color:var(--green); background:var(--soft); }
+    .status.stale { color:var(--amber); background:var(--amber-bg); }
+    .result-body { min-height:460px; flex:1; }
+    .preview-empty { padding:62px 8px 28px; }
+    .paper-illustration { width:92px; height:112px; border:1px solid #d4e1d9; border-radius:5px; background:white; margin:0 auto 25px; padding:20px 15px; box-shadow:7px 7px 0 #eef3f0; }
+    .paper-illustration .line { height:4px; background:#e5ece7; margin:9px 0; border-radius:2px; }
+    .paper-illustration .line:first-child { width:65%; background:#b0d9c5; height:6px; margin-bottom:15px; }
+    .preview-empty h3 { text-align:center; font-size:15px; }
+    .preview-empty > p { text-align:center; font-size:12px; color:var(--muted); margin-top:8px; }
+    .output-outline { margin:30px auto 0; max-width:265px; padding:15px 17px; background:#f2f6f3; border-radius:6px; font-size:11px; }
+    .output-outline > span { color:var(--muted); display:block; margin-bottom:9px; }
+    .output-outline p { display:flex; gap:8px; align-items:center; margin:8px 0; }
+    .output-outline svg { width:13px; height:13px; color:var(--green); }
+    .result-meta { color:var(--muted); font-size:10px; padding:12px 0 0; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:8px; }
+    .preview-text { white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.95 var(--sans); margin:18px 0; max-height:515px; overflow:auto; scrollbar-width:thin; }
+    .stale-banner { font-size:11px; color:var(--amber); background:var(--amber-bg); border-radius:5px; padding:10px 11px; margin:15px 0; }
+    .error-box { color:var(--red); background:#fff3f3; border:1px solid #f0d4d5; border-radius:6px; padding:12px 14px; margin-top:18px; font-size:12px; }
+    .error-box ul { margin:6px 0 0; padding-left:17px; }
+    .invalid { border-color:var(--red) !important; }
+    .inline-error { color:var(--red); font-size:11px; }
+    .notice { padding:12px; background:var(--amber-bg); color:var(--amber); border-radius:6px; font-size:12px; line-height:1.8; }
+    .mobile-tabs { display:none; }
+    .demo-footer { display:flex; justify-content:space-between; gap:15px; margin:16px 2px 0; color:var(--muted); font-size:11px; }
+    .demo-footer button { color:var(--muted); font-size:11px; padding:0; text-decoration:underline; text-underline-offset:3px; }
+    .edit-layout { display:grid; grid-template-columns:minmax(0,1fr) 295px; }
+    .editor-pane { padding:23px; min-width:0; }
+    .editor-info { display:grid; grid-template-columns:minmax(0,1fr) 126px; gap:12px; }
+    .editor-info .field { margin-bottom:14px; }
+    .edit-hint { background:#f1f7f3; color:var(--green); border-radius:5px; padding:9px 11px; font-size:11px; margin-bottom:17px; }
+    .body-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; }
+    #body-editor { min-height:430px; font:12px/1.9 var(--sans); tab-size:2; padding:14px; }
+    .editor-footer { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-top:15px; }
+    .editor-footer .actions { display:flex; gap:7px; }
+    .editor-footer span { font-size:11px; color:var(--muted); }
+    .inspector { border-left:1px solid var(--line); background:#fbfcfb; padding:24px 18px; }
+    .inspector h3 { margin-bottom:7px; }
+    .inspector .sub { font-size:11px; margin-bottom:16px; }
+    .variable-card { border-bottom:1px solid var(--line); padding:10px 0; display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; }
+    .variable-card small { font-size:10px; color:var(--muted); display:block; margin-top:2px; }
+    .field-card { padding:10px 0; border-bottom:1px solid var(--line); }
+    .field-card-top { display:flex; align-items:center; justify-content:space-between; gap:5px; }
+    .field-card input { min-height:31px; padding:5px 7px; font-size:12px; }
+    .field-options { display:flex; gap:8px; margin-top:8px; align-items:center; }
+    .field-options select { min-height:28px; padding:3px 5px; font-size:11px; width:86px; }
+    .check-label { display:flex; align-items:center; gap:4px; font-size:11px; white-space:nowrap; }
+    .check-label input { width:13px; min-height:13px; margin:0; accent-color:var(--green); }
+    .field-key { font-size:10px; color:var(--muted); margin-top:6px; overflow-wrap:anywhere; }
+    .inspector-section { margin-bottom:25px; }
+    .inspector .btn { width:100%; margin-top:12px; }
+    .unsaved-notice { font-size:11px; padding:9px 24px; background:var(--amber-bg); color:var(--amber); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .unsaved-notice button { color:var(--amber); text-decoration:underline; font-size:11px; }
+    dialog { width:min(540px,calc(100% - 32px)); border:1px solid var(--line); border-radius:10px; padding:0; color:var(--ink); box-shadow:0 20px 80px #17382a2b; max-height:85dvh; }
+    dialog::backdrop { background:#1a302b66; }
+    .dialog-head { padding:19px 22px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .dialog-head h2 { font-size:17px; }
+    .dialog-body { padding:20px 22px; }
+    .dialog-foot { padding:14px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+    .variable-list { max-height:360px; overflow:auto; margin-top:14px; }
+    .insert-variable { width:100%; text-align:left; padding:11px 10px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+    .insert-variable:hover { background:var(--soft); }
+    .insert-variable small { display:block; font-size:10px; color:var(--muted); margin-top:3px; }
+    .insert-variable > span:last-child { color:var(--green); font-size:11px; }
+    #toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#233f32; color:white; border-radius:7px; padding:11px 20px; font-size:12px; box-shadow:0 4px 20px #23332d24; z-index:20; max-width:calc(100% - 30px); width:max-content; }
+    @media(min-width:1600px) { main { padding-top:38px; } }
+    @media(max-width:1180px) { .workspace { grid-template-columns:200px minmax(0,1fr); } .work-grid { grid-template-columns:minmax(0,1fr) minmax(290px,.9fr); } .fill-pane { padding-left:20px; padding-right:20px; } .form-footer { margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px; } .result-pane { padding-left:18px; padding-right:18px; } .toolbar-note { display:none; } .edit-layout { grid-template-columns:minmax(0,1fr) 255px; } }
+    @media(max-width:1000px) { main { padding:22px 20px; } .topbar-inner { padding:0 20px; } .workspace { grid-template-columns:190px minmax(0,1fr); } .work-grid { grid-template-columns:1fr; } .result-pane { border-left:0; border-top:1px solid var(--line); } .result-body { min-height:240px; } .preview-empty { padding:30px 10px; } .paper-illustration { display:none; } .output-outline { margin-top:18px; } .edit-layout { grid-template-columns:1fr; } .inspector { border-left:0; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:22px; } .inspector-section { margin-bottom:0; } }
+    @media(max-width:650px) {
+      .topbar-inner { height:49px; padding:0 16px; gap:23px; } .brand { font-size:16px; gap:7px; } .brand-mark { width:25px; height:25px; font-size:15px; } .nav { gap:20px; font-size:12px; } .nav .hide-mobile { display:none; } .demo-mark { font-size:9px; padding:1px 5px; }
+      main { padding:20px 14px 14px; } h1 { font-size:22px; } .page-head { margin-bottom:18px; } .page-head p { font-size:11px; max-width:230px; } .page-links a { display:none; } .page-links .btn { min-height:32px; padding:5px 9px; font-size:11px; }
+      .workspace { display:block; min-height:0; } .library { padding:12px 10px 9px; border-right:0; border-bottom:1px solid var(--line); } .library-title,.library-bottom,.group-label,.filters { display:none; } .library .search { margin:0 2px 10px; } #template-list { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; } .template { flex:0 0 173px; margin:0; padding:10px; } .template-title { font-size:12px; } .template-desc { font-size:10px; } .template-tag { display:none; }
+      .work-toolbar { padding:12px 14px; } .mode-switch button { padding:5px 14px; } .fill-pane { padding:20px 17px 0; } h2 { font-size:17px; } .sub { font-size:11px; } .section { margin-top:23px; } .field { margin-bottom:16px; } input,select,textarea { font-size:16px; } .field > span:first-child { font-size:12px; } textarea { min-height:106px; } .range-row { grid-template-columns:minmax(0,1fr) 110px; } .form-footer { padding:15px 17px 16px; margin-left:-17px; margin-right:-17px; position:sticky; bottom:0; background:white; z-index:2; } .action-row .btn { font-size:12px; }
+      .mobile-tabs { display:flex; padding:0 14px; border-bottom:1px solid var(--line); } .mobile-tabs button { flex:1; padding:10px 0; font-size:12px; color:var(--muted); border-bottom:2px solid transparent; } .mobile-tabs button.active { border-color:var(--green); color:var(--green); font-weight:600; }
+      .work-grid[data-mobile="fill"] .result-pane { display:none; } .work-grid[data-mobile="result"] .fill-pane { display:none; } .result-pane { border-top:0; padding:0 17px 20px; min-height:480px; } .result-body { min-height:345px; } .preview-empty { padding-top:45px; } .paper-illustration { display:block; width:70px; height:87px; padding:12px; } .preview-text { max-height:none; font-size:12px; }
+      .demo-footer { display:block; font-size:10px; } .demo-footer > span { display:block; margin-bottom:6px; } .demo-footer button { font-size:10px; } .editor-pane { padding:17px; } .editor-info { grid-template-columns:1fr; gap:0; } #body-editor { font-size:16px; min-height:340px; } .editor-footer { align-items:flex-start; } .editor-footer .actions { flex-wrap:wrap; justify-content:flex-end; } .inspector { display:block; padding:20px 17px; } .inspector-section { margin-bottom:24px; } .inspector input { font-size:16px; } .unsaved-notice { padding:9px 14px; }
+    }
+    @media(prefers-reduced-motion:no-preference) { .btn,.template,.filter { transition:background .12s,border-color .12s; } }
+  </style>
+</head>
+<body>
+  <svg aria-hidden="true" style="display:none">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 13 4-4M8 16l-1 1a4.2 4.2 0 0 1-6-6l4-4a4.2 4.2 0 0 1 6 0m2 1 1-1a4.2 4.2 0 0 1 6 6l-4 4a4.2 4.2 0 0 1-6 0" transform="translate(1 0)"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+  </svg>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark">玄</span>东玄</div>
+      <nav class="nav" aria-label="站点位置"><span class="hide-mobile">紫微斗数</span><span class="hide-mobile">梅花易数</span><span class="hide-mobile">命盘</span><span class="current">提示词</span></nav>
+      <span class="demo-mark">交互演示</span>
+    </div>
+  </header>
+  <main>
+    <header class="page-head">
+      <div><h1>提示词</h1><p>选一份模板，填好这次的资料，复制给外部 Agent。</p></div>
+      <div class="page-links"><a href="../prompt-interaction-redesign.md">查看方案说明</a><button class="btn" id="new-template"><svg><use href="#i-plus"/></svg>新建模板</button></div>
+    </header>
+    <div class="workspace">
+      <aside class="library" aria-label="模板库">
+        <div class="library-title"><h2>我的模板<span class="count" id="template-count">5</span></h2></div>
+        <label class="search"><svg><use href="#i-search"/></svg><input type="search" id="template-search" placeholder="搜索名称或用途" aria-label="搜索模板"></label>
+        <div class="filters" aria-label="筛选模板">
+          <button class="filter active" data-filter="all" aria-pressed="true">全部</button><button class="filter" data-filter="favorite" aria-pressed="false">常用</button><button class="filter" data-filter="ziwei" aria-pressed="false">紫微</button><button class="filter" data-filter="meihua" aria-pressed="false">梅花</button>
+        </div>
+        <div id="template-list"></div>
+        <div class="library-bottom"><button class="btn" id="new-from-library"><svg><use href="#i-plus"/></svg>新建模板</button><p>模板可以反复用。<br>本次填写的内容不存入模板。</p></div>
+      </aside>
+      <section class="work-area" aria-label="提示词工作区">
+        <div class="work-toolbar">
+          <div class="mode-switch" aria-label="工作模式"><button id="use-mode" class="active" aria-pressed="true">使用模板</button><button id="edit-mode" aria-pressed="false">编辑模板</button></div>
+          <span class="toolbar-note" id="toolbar-note">只填写这次需要的内容</span>
+          <button class="btn quiet small" id="duplicate-template" title="以当前已保存模板创建副本">另存副本</button>
+        </div>
+        <div id="draft-notice" class="unsaved-notice" hidden><span>这份模板有未保存的草稿，当前使用已保存版本。</span><button id="restore-draft">恢复编辑</button></div>
+        <div id="use-view">
+          <div class="mobile-tabs"><button class="active" data-mobile-view="fill" aria-pressed="true">填写资料</button><button data-mobile-view="result" aria-pressed="false">查看结果<span id="mobile-result-dot"></span></button></div>
+          <div class="work-grid" id="work-grid" data-mobile="fill">
+            <form class="fill-pane" id="run-form" novalidate>
+              <div class="template-heading"><div><h2 id="active-title"></h2><p class="sub" id="active-description"></p></div><button type="button" class="icon-btn" id="favorite-template" aria-label="设为常用" aria-pressed="false">☆</button></div>
+              <div id="source-section" class="section">
+                <div class="section-heading"><h3>关联资料</h3><span id="source-count">自动带入</span></div>
+                <div id="chart-field"><label class="field"><span>命盘</span><select id="chart-select"><option value="self">我（示例）</option><option value="lin">林舟（示例）</option><option value="">请选择命盘</option></select></label><p class="chart-meta" id="chart-meta"><svg><use href="#i-link"/></svg><span>基础命盘已关联 · 不包含私人笔记</span></p></div>
+                <div id="month-fields" style="margin-top:19px"><div class="field"><span>看哪段时间 <span class="help">阳历</span></span><div class="range-row"><input type="month" id="start-month" value="2026-11" min="1901-01" max="2099-12" aria-label="起始月份"><select id="month-count" aria-label="连续月份数"></select></div></div><p class="range-summary" id="range-summary"></p></div>
+                <div id="year-fields" hidden style="margin-top:19px"><label class="field"><span>对比哪些流年</span><input id="year-input" value="2026, 2027, 2028" placeholder="例如：2026, 2027, 2028"><span class="help">春节为界；最多 12 个年份，以逗号分隔。</span></label></div>
+                <details class="source-details" id="source-details"><summary>已关联资料与时间设置</summary><div class="chips" id="source-chips"></div><label class="field" id="date-field"><span>基准日</span><input type="date" id="as-of" value="2026-11-24" min="1901-01-01" max="2099-12-31"><span class="help">用于确定虚岁和当前大限，不改变上面的目标范围。</span></label></details>
+              </div>
+              <div id="unavailable-notice" class="notice section" hidden></div>
+              <div class="divider"></div>
+              <div class="section-heading"><h3>本次填写</h3><button class="example-button" id="fill-example" type="button">填入示例</button></div>
+              <div id="manual-fields"></div>
+              <p id="optional-note" class="help" hidden>选填项可以留空，生成时会标记为“未提供”。</p>
+              <div id="validation-errors" class="error-box" role="alert" hidden></div>
+              <div class="form-footer">
+                <div class="action-row"><button class="btn" id="preview-button" type="button">查看预览</button><button class="btn primary" id="generate-copy" type="submit"><svg><use href="#i-copy"/></svg><span>生成并复制</span></button></div>
+                <p class="footer-note" id="run-note">自动检查所需资料，只复制文本。</p>
+              </div>
+            </form>
+            <section class="result-pane" aria-label="生成结果" aria-live="polite">
+              <div class="result-toolbar"><div class="result-title"><h3>完整提示词</h3><span class="status" id="result-status">待生成</span></div><button class="btn small" id="copy-result" disabled><svg style="width:13px;height:13px"><use href="#i-copy"/></svg>复制</button></div>
+              <div class="result-body" id="result-body"></div>
+              <div class="result-meta"><span id="result-meta">生成后可查看完整文本</span><span>示例资料</span></div>
+            </section>
+          </div>
+        </div>
+        <div id="edit-view" hidden>
+          <div class="edit-layout">
+            <div class="editor-pane">
+              <div class="edit-hint">这里修改可重复使用的模板。命盘、日期和本次答案在「使用模板」中填写。</div>
+              <div class="editor-info"><label class="field"><span>模板名称</span><input id="edit-title" maxlength="80"></label><label class="field"><span>适用术数</span><select id="edit-system"><option value="ziwei">紫微斗数</option><option value="meihua">梅花易数</option></select></label></div>
+              <div class="body-toolbar"><label for="body-editor">模板正文</label><button class="btn small" id="open-variables"><svg style="width:13px;height:13px"><use href="#i-plus"/></svg>插入资料</button></div>
+              <textarea id="body-editor" maxlength="30000" spellcheck="false" aria-describedby="editor-help"></textarea>
+              <p class="help" id="editor-help" style="margin-top:7px">把光标放到正文里，再插入命盘资料或填写项。</p>
+              <div id="editor-errors" class="error-box" role="alert" hidden></div>
+              <div class="editor-footer"><span id="draft-status">已保存</span><div class="actions"><button class="btn" id="discard-edit">撤销修改</button><button class="btn primary" id="save-edit">保存并使用</button></div></div>
+            </div>
+            <aside class="inspector" aria-label="模板所需资料">
+              <section class="inspector-section"><h3>关联资料</h3><p class="sub">从正文自动识别，不用再手动声明。</p><div id="detected-sources"></div><button class="btn small" id="open-variables-side">添加资料引用</button></section>
+              <section class="inspector-section"><h3>本次填写项</h3><p class="sub">设置名称、类型和是否必填。内部变量名自动生成。</p><div id="field-definitions"></div><button class="btn small" id="add-field"><svg style="width:13px;height:13px"><use href="#i-plus"/></svg>添加填写项</button></section>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer class="demo-footer"><span>独立交互原型：人物与正文资料为示例，未调用排盘或 AI 服务。仅模板保存在此浏览器。</span><span><a href="../prompt-interaction-redesign.md">优化说明</a>　<button id="reset-demo">恢复初始演示</button></span></footer>
+  </main>
+  <dialog id="new-dialog" aria-labelledby="new-dialog-title">
+    <form id="new-form">
+      <div class="dialog-head"><h2 id="new-dialog-title">新建模板</h2><button type="button" class="icon-btn close-dialog" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body"><label class="field"><span>模板名称</span><input id="new-title" placeholder="例如：年度回顾" required maxlength="80"></label><label class="field"><span>适用术数</span><select id="new-system"><option value="ziwei">紫微斗数</option><option value="meihua">梅花易数</option></select></label><label class="field"><span>从哪里开始</span><select id="new-base"><option value="blank">空白模板</option><option value="current">复制当前已保存模板</option></select></label><p class="help">创建后进入编辑。可以直接粘贴自己的提示词，再插入资料。</p></div>
+      <div class="dialog-foot"><button type="button" class="btn close-dialog">取消</button><button type="submit" class="btn primary">创建并编辑</button></div>
+    </form>
+  </dialog>
+  <dialog id="variables-dialog" aria-labelledby="variables-title">
+    <div class="dialog-head"><h2 id="variables-title">插入资料</h2><button class="icon-btn close-dialog" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body"><label class="search"><svg><use href="#i-search"/></svg><input id="variable-search" type="search" placeholder="搜索本命、大限、月份或填写项" aria-label="搜索可插入资料"></label><div class="variable-list" id="variable-list"></div></div>
+  </dialog>
+  <dialog id="reset-dialog" aria-labelledby="reset-title">
+    <div class="dialog-head"><h2 id="reset-title">恢复初始演示？</h2><button class="icon-btn close-dialog" aria-label="关闭"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body"><p>这会清除本演示中新建的模板、草稿和本次填写，恢复五份示例模板。</p></div>
+    <div class="dialog-foot"><button class="btn close-dialog">取消</button><button class="btn primary" id="confirm-reset">恢复初始演示</button></div>
+  </dialog>
+  <div id="toast" role="status" hidden></div>
+  <script>
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const icon = (name) => '<svg aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+    const STORE = 'dongxuan-prompt-workbench-demo-v1';
+    const SEEDS = [
+      {id:'months',title:'流月行动排期',description:'选一段时间，看看一件事适合怎么安排。',system:'ziwei',favorite:true,
+        body:'请基于以下资料，为我制定流月行动排期。\n以大限为体、流年为纲、流月为应期。不自行推算缺失的盘面。\n\n【本命资料】\n{{ziwei.natal}}\n\n【基准日性别与虚岁】\n{{ziwei.gender_age}}\n\n【当前大限】\n{{ziwei.decade_current}}\n\n【目标窗口】\n{{range.label}}\n{{ziwei.months}}\n\n【近期拟定动作】\n{{input.action}}\n\n【输出要求】\n先说明盘面依据，再按时段给出行动建议、限制条件与需要补充的信息。资料不足时明确指出。',
+        fields:[{key:'action',label:'近期拟定动作',type:'textarea',required:true,placeholder:'例如：想在未来三个月换工作，目前还在准备简历。'}]},
+      {id:'years',title:'大限与多年选项比较',description:'先看长期趋势，再对比现实中的几个选择。',system:'ziwei',favorite:true,
+        body:'请先盘后事，比较以下大限与流年。禁止根据职业、行业作无依据的联想。\n\n【本命】\n{{ziwei.natal}}\n【当前与下一大限】\n{{ziwei.decades}}\n【基准日性别与虚岁】\n{{ziwei.gender_age}}\n【目标流年】\n{{years.label}}\n{{ziwei.years}}\n\n【现状】\n{{input.status}}\n【选项 A】\n{{input.option_a}}\n【选项 B】\n{{input.option_b}}\n【权衡维度】\n{{input.criteria}}\n\n先完成纯盘面分析。现实资料不足时，列出需要补充的问题。',
+        fields:[{key:'status',label:'目前的状态',type:'textarea',required:false},{key:'option_a',label:'选项 A',type:'text',required:false},{key:'option_b',label:'选项 B',type:'text',required:false},{key:'criteria',label:'最在意的权衡',type:'text',required:false}]},
+      {id:'natal',title:'本命梳理',description:'结合一个具体问题，梳理本命盘中的线索。',system:'ziwei',favorite:false,
+        body:'请基于本命资料回答我的问题。只引用提供的盘面，不编造缺失信息。\n\n【本命资料】\n{{ziwei.natal}}\n【本次问题】\n{{input.question}}\n\n请区分事实、解释与建议，并给出需要进一步确认的信息。',
+        fields:[{key:'question',label:'这次想了解什么',type:'textarea',required:true,placeholder:'写下一个具体问题。'}]},
+      {id:'raw',title:'梅花原始起卦请求',description:'带上问题和数字，交给外部 Agent 确认规则。',system:'meihua',favorite:false,
+        body:'以下只是原始起卦请求，尚未起卦。请先确认起卦规则，不能假定已有卦象。\n\n问题：{{input.question}}\n第一个数字：{{input.number_a}}\n第二个数字：{{input.number_b}}\n\n请先确认上下卦顺序、余零规则和动爻取法，再继续。',
+        fields:[{key:'question',label:'想问什么',type:'textarea',required:true},{key:'number_a',label:'第一个数字',type:'integer',required:true},{key:'number_b',label:'第二个数字',type:'integer',required:true}]},
+      {id:'full',title:'梅花完整卦例分析',description:'需要完整卦象资料，目前尚未接入。',system:'meihua',favorite:false,
+        body:'请分析以下完整卦例，不自行补造卦象。\n问题：{{input.question}}\n上卦：{{meihua.upper}}\n下卦：{{meihua.lower}}\n本卦：{{meihua.primary}}\n互卦：{{meihua.mutual}}\n变卦：{{meihua.changed}}\n动爻：{{meihua.moving_line}}',
+        fields:[{key:'question',label:'想问什么',type:'textarea',required:true}]}
+    ];
+    const CATALOG = [
+      {name:'chart.title',label:'命盘名称',group:'命盘'},
+      {name:'profile.name',label:'命盘称呼',group:'命盘'},
+      {name:'profile.gender',label:'命盘性别',group:'命盘'},
+      {name:'ziwei.birth',label:'出生资料',group:'紫微'},
+      {name:'ziwei.natal',label:'本命完整资料',group:'紫微'},
+      {name:'ziwei.gender_age',label:'基准日性别与虚岁',group:'紫微'},
+      {name:'ziwei.decade_current',label:'当前大限',group:'紫微'},
+      {name:'ziwei.decades',label:'当前与下一大限',group:'紫微'},
+      {name:'ziwei.current',label:'指定日完整运限',group:'紫微'},
+      {name:'ziwei.months',label:'连续月份资料',group:'紫微'},
+      {name:'range.label',label:'月份范围',group:'时间'},
+      {name:'ziwei.years',label:'多个流年资料',group:'紫微'},
+      {name:'years.label',label:'流年范围',group:'时间'},
+      {name:'bazi.chart',label:'完整八字命盘',group:'待接入',unavailable:true},
+      ...['upper','lower','primary','mutual','changed','moving_line'].map((key,i) => ({name:'meihua.'+key,label:['上卦','下卦','本卦','互卦','变卦','动爻'][i],group:'梅花 · 待接入',unavailable:true}))
+    ];
+    let templates = clone(SEEDS), storageOK = true;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE));
+      if (Array.isArray(saved) && saved.length && saved.every((t) => typeof t.id === 'string' && typeof t.title === 'string' && typeof t.body === 'string' && Array.isArray(t.fields))) templates = saved;
+    } catch { storageOK = false; }
+    let activeId = templates[0].id, mode = 'use', filter = 'all', values = {}, result = null, busy = false, toastTimer, requestVersion = 0;
+    const drafts = new Map(), transientIds = new Set();
+    const current = () => templates.find((t) => t.id === activeId);
+    const draft = () => drafts.get(activeId) || current();
+    const names = (body) => [...new Set(Array.from(body.matchAll(/\{\{([^{}]*)\}\}/g), (m) => m[1].trim()))];
+    const selectedYears = () => [...new Set($('year-input').value.split(/[，,、\s]+/).filter(Boolean).map(Number))];
+    const needs = (t) => {
+      const n = names(t.body);
+      return {names:n,chart:n.some((s) => /^(ziwei\.|profile\.|chart\.)/.test(s)),months:n.some((s) => s === 'ziwei.months' || s === 'range.label'),years:n.some((s) => s === 'ziwei.years' || s === 'years.label'),date:n.some((s) => ['ziwei.gender_age','ziwei.current','ziwei.decade_current','ziwei.decades'].includes(s)),unavailable:n.filter((s) => s.startsWith('meihua.') || s.startsWith('bazi.'))};
+    };
+    function toast(message) { clearTimeout(toastTimer); $('toast').textContent = message; $('toast').hidden = false; toastTimer = setTimeout(() => $('toast').hidden = true, 4200); }
+    function persist() {
+      try { localStorage.setItem(STORE, JSON.stringify(templates.filter((t) => !transientIds.has(t.id)))); storageOK = true; }
+      catch { storageOK = false; toast('浏览器无法保存模板，本次修改仅在当前页面保留。'); }
+    }
+    function monthRange() {
+      const start = $('start-month').value;
+      if (!/^\d{4}-\d{2}$/.test(start)) return '';
+      const [year,month] = start.split('-').map(Number), count = Number($('month-count').value);
+      const end = new Date(year,month + count - 1,0);
+      return start.replace('-',' 年 ') + ' 月 — ' + end.getFullYear() + ' 年 ' + (end.getMonth()+1) + ' 月';
+    }
+    function renderLibrary() {
+      const q = $('template-search').value.trim().toLowerCase();
+      const list = templates.filter((t) => (filter === 'all' || (filter === 'favorite' ? t.favorite : t.system === filter)) && (t.title + t.description).toLowerCase().includes(q));
+      let html = '';
+      for (const system of ['ziwei','meihua']) {
+        const group = list.filter((t) => t.system === system);
+        if (!group.length) continue;
+        html += '<div class="group-label">' + (system === 'ziwei' ? '紫微斗数' : '梅花易数') + '</div>';
+        for (const t of group) {
+          const used = t.fields.filter((f) => names(t.body).includes('input.'+f.key));
+          const required = used.filter((f) => f.required).length;
+          html += '<button class="template ' + (t.id === activeId ? 'active' : '') + '" data-template="' + esc(t.id) + '" aria-pressed="' + (t.id === activeId) + '"><span class="template-title"><span>' + esc(t.title) + (drafts.has(t.id) ? '<i class="draft-dot" title="未保存草稿"></i>' : '') + '</span>' + (t.favorite ? '<span class="star" aria-label="常用">★</span>' : '') + '</span><p class="template-desc">' + esc(t.description) + '</p><span class="template-tag">' + (needs(t).unavailable.length ? '卦象资料待接入' : (required ? required + ' 项必填' : '填写项均可选')) + (used.length > required ? ' · ' + (used.length - required) + ' 项选填' : '') + '</span></button>';
+        }
+      }
+      $('template-list').innerHTML = html || '<p class="empty-library">没有找到模板，试试其他名称。</p>';
+      $('template-count').textContent = templates.length;
+    }
+    function renderFields() {
+      const t = current(), used = names(t.body);
+      const fields = t.fields.filter((f) => used.includes('input.'+f.key));
+      if (used.includes('question')) fields.push({key:'_question',label:'本次问题',type:'textarea',required:true});
+      $('manual-fields').innerHTML = fields.map((f) => {
+        const value = values[f.key] || '', id = 'input-' + f.key;
+        return '<label class="field" for="' + esc(id) + '"><span>' + esc(f.label) + (f.required ? '<span class="required" aria-label="必填">*</span>' : '<span class="optional">选填</span>') + '</span>' + (f.type === 'textarea'
+          ? '<textarea id="' + esc(id) + '" data-input="' + esc(f.key) + '" maxlength="30000" ' + (f.required ? 'aria-required="true"' : '') + ' placeholder="' + esc(f.placeholder || (f.required ? '写下这次的具体情况。' : '可以留空')) + '">' + esc(value) + '</textarea>'
+          : '<input id="' + esc(id) + '" data-input="' + esc(f.key) + '" type="' + (f.type === 'integer' ? 'number" step="1' : 'text') + '" value="' + esc(value) + '" maxlength="30000" ' + (f.required ? 'aria-required="true"' : '') + ' placeholder="' + (f.required ? '请填写' : '可以留空') + '">') + '<span class="inline-error" id="error-' + esc(f.key) + '" hidden></span></label>';
+      }).join('') || '<p class="help">这份模板不需要额外填写。</p>';
+      $('fill-example').hidden = !fields.length;
+      $('optional-note').hidden = !fields.some((f) => !f.required);
+    }
+    function renderUse() {
+      const t = current(), n = needs(t);
+      $('active-title').textContent = t.title;
+      $('active-description').textContent = t.description;
+      $('favorite-template').textContent = t.favorite ? '★' : '☆';
+      $('favorite-template').setAttribute('aria-pressed', String(!!t.favorite));
+      $('favorite-template').setAttribute('aria-label', t.favorite ? '取消常用' : '设为常用');
+      $('source-section').hidden = !n.chart && !n.months && !n.years && !n.date;
+      $('chart-field').hidden = !n.chart;
+      $('month-fields').hidden = !n.months;
+      $('year-fields').hidden = !n.years;
+      $('date-field').hidden = !n.date;
+      const sources = CATALOG.filter((c) => n.names.includes(c.name) && !c.name.endsWith('.label') && !c.unavailable);
+      $('source-chips').innerHTML = sources.map((c) => '<span class="chip">' + esc(c.label) + '</span>').join('');
+      $('source-count').textContent = sources.length ? sources.length + ' 类资料自动带入' : '按模板显示';
+      $('source-details').hidden = !sources.length && !n.date;
+      $('unavailable-notice').hidden = !n.unavailable.length;
+      $('unavailable-notice').textContent = n.unavailable.some((s) => s.startsWith('bazi.')) ? '此模板需要完整八字资料，当前尚未接入。可以编辑模板，但暂时无法生成。' : '完整梅花卦象尚未接入。此模板暂时无法生成；如需提交问题与数字，可选择「梅花原始起卦请求」。';
+      renderFields(); updateContext(); renderResult();
+      $('draft-notice').hidden = !drafts.has(activeId);
+    }
+    function updateContext() {
+      const range = monthRange();
+      $('range-summary').textContent = range ? range + '，按实际流月分段。' : '请选择起始月份。';
+      $('chart-meta').hidden = !$('chart-select').value;
+      $('source-details').querySelector('summary').textContent = '已关联资料与时间设置' + (needs(current()).date ? ' · 基准日 ' + ($('as-of').value || '未选') : '');
+    }
+    function renderResult() {
+      const status = $('result-status');
+      status.className = 'status' + (result ? (result.stale ? ' stale' : ' ready') : '');
+      status.textContent = busy ? '正在生成' : result ? (result.stale ? '待更新' : '已就绪') : '待生成';
+      $('copy-result').disabled = !result || result.stale || busy;
+      $('mobile-result-dot').textContent = result ? (result.stale ? ' · 待更新' : ' · 已就绪') : '';
+      if (result) {
+        const selection = window.getSelection();
+        if (selection && selection.anchorNode && $('result-body').contains(selection.anchorNode)) selection.removeAllRanges();
+        $('result-body').innerHTML = (result.stale ? '<div class="stale-banner">资料已变更，下方保留的是上次结果。请重新生成后复制。</div>' : '') + '<pre class="preview-text" id="preview-text" tabindex="0" aria-label="完整提示词文本">' + esc(result.text) + '</pre><details><summary>本次来源与覆盖范围</summary><p class="help" style="margin-top:8px">' + esc(result.source) + '</p><p class="help">演示仅展示资料插入位置，不包含真实星曜或计算结果。</p></details>';
+        $('result-meta').textContent = result.text.length.toLocaleString() + ' 字符 · ' + (result.stale ? '需重新生成' : '可完整复制');
+      } else {
+        const n = needs(current());
+        const outline = n.chart ? ['模板中的分析框架','所选命盘与时间资料','你这次填写的具体情况'] : ['模板中的分析框架','你这次填写的问题与数字','原始请求说明'];
+        $('result-body').innerHTML = '<div class="preview-empty"><div class="paper-illustration" aria-hidden="true"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line" style="width:78%"></div><div class="line"></div></div><h3>把资料准备好，再交给 Agent</h3><p>填好左侧内容，完整提示词会出现在这里。</p><div class="output-outline"><span>将为你合并</span>' + outline.map((s) => '<p>' + icon('check') + esc(s) + '</p>').join('') + '</div></div>';
+        $('result-meta').textContent = '生成后可查看完整文本';
+      }
+    }
+    function invalidate() {
+      requestVersion += 1;
+      if (result) { result.stale = true; renderResult(); }
+      $('validation-errors').hidden = true;
+      document.querySelectorAll('#run-form .invalid').forEach((e) => {e.classList.remove('invalid'); e.removeAttribute('aria-invalid');});
+      document.querySelectorAll('.inline-error').forEach((e) => e.hidden = true);
+      $('run-note').textContent = result ? '资料已变更，重新生成后即可复制。' : '自动检查所需资料，只复制文本。';
+    }
+    function setMobile(view) {
+      $('work-grid').dataset.mobile = view;
+      document.querySelectorAll('[data-mobile-view]').forEach((b) => { b.classList.toggle('active',b.dataset.mobileView === view); b.setAttribute('aria-pressed',String(b.dataset.mobileView === view)); });
+    }
+    function setMode(next) {
+      if (next === 'use' && transientIds.has(activeId)) next = 'edit';
+      mode = next;
+      $('use-view').hidden = next !== 'use'; $('edit-view').hidden = next !== 'edit';
+      $('use-mode').classList.toggle('active', next === 'use'); $('edit-mode').classList.toggle('active', next === 'edit');
+      $('use-mode').setAttribute('aria-pressed',String(next === 'use')); $('edit-mode').setAttribute('aria-pressed',String(next === 'edit'));
+      $('toolbar-note').textContent = next === 'use' ? '只填写这次需要的内容' : '草稿暂存在当前页面，可随时切换模板';
+      $('use-mode').disabled = transientIds.has(activeId);
+      $('use-mode').title = transientIds.has(activeId) ? '先保存新模板，再填写本次资料' : '';
+      $('draft-notice').hidden = next !== 'use' || !drafts.has(activeId);
+      if (next === 'edit') renderEditor();
+    }
+    function switchTemplate(id) {
+      if (busy || id === activeId) return;
+      requestVersion += 1; activeId = id; values = {}; result = null;
+      $('validation-errors').hidden = true;
+      $('run-note').textContent = '自动检查所需资料，只复制文本。';
+      renderLibrary(); renderUse(); setMobile('fill'); setMode(mode);
+    }
+    function validateDefinition(t) {
+      const errors = [], n = names(t.body), keys = t.fields.map((f) => f.key);
+      if (!t.title.trim()) errors.push('请填写模板名称。');
+      if (!t.body.trim()) errors.push('请填写模板正文。');
+      if (t.fields.length > 16) errors.push('本次填写项最多 16 项。');
+      const leftovers = t.body.replace(/\{\{[^{}]*\}\}/g,'');
+      if (leftovers.includes('{{') || leftovers.includes('}}')) errors.push('正文中有未闭合或嵌套的变量括号，请检查。');
+      for (const f of t.fields) if (!/^[a-z][a-z0-9_]{0,31}$/.test(f.key) || !f.label.trim() || f.label.length > 80) errors.push('填写项名称或内部变量名无效。');
+      if (new Set(keys).size !== keys.length) errors.push('填写项内部变量名不能重复。');
+      for (const name of n) if (!CATALOG.some((c) => c.name === name) && name !== 'question' && !(name.startsWith('input.') && keys.includes(name.slice(6)))) errors.push('未识别的引用：{{' + name + '}}。请通过「插入资料」添加，或先建立对应填写项。');
+      return errors;
+    }
+    function validateRun() {
+      const t = current(), n = needs(t), errors = validateDefinition(t);
+      if (n.chart && !$('chart-select').value) errors.push('请选择一张命盘。');
+      if (n.months && (!$('start-month').value || !$('start-month').validity.valid || !monthRange() || Number($('start-month').value.slice(0,4)) < 1901 || Number($('start-month').value.slice(0,4)) > 2099)) errors.push('请选择 1901–2099 年内的有效起始月份。');
+      if (n.months && $('start-month').value) {
+        const [y,m] = $('start-month').value.split('-').map(Number);
+        if (y * 12 + m - 1 + Number($('month-count').value) - 1 > 2099 * 12 + 11) errors.push('月份范围不能超过 2099 年 12 月。');
+      }
+      if (n.years && (!selectedYears().length || selectedYears().length > 12 || selectedYears().some((y) => !Number.isInteger(y) || y < 1901 || y > 2099))) errors.push('请输入 1–12 个 1901–2099 年之间的流年。');
+      if (n.date && (!$('as-of').value || !$('as-of').validity.valid)) errors.push('请选择有效基准日（1901–2099 年）。');
+      if (n.unavailable.length) errors.push('需要的' + (n.unavailable.some((s) => s.startsWith('bazi.')) ? '八字命盘' : '完整梅花卦象') + '尚未接入，暂时无法生成。');
+      const used = t.fields.filter((f) => n.names.includes('input.'+f.key));
+      if (n.names.includes('question')) used.push({key:'_question',label:'本次问题',required:true,type:'textarea'});
+      for (const f of used) {
+        const value = (values[f.key] || '').trim(), el = $('input-'+f.key);
+        let message = '';
+        if (!value && f.required) message = '请填写' + f.label + '。';
+        else if (f.type === 'integer' && value && !Number.isSafeInteger(Number(value))) message = f.label + '需要填写安全整数。';
+        if (message) {
+          errors.push(message);
+          if (el) { el.classList.add('invalid'); el.setAttribute('aria-invalid','true'); el.setAttribute('aria-describedby','error-'+f.key); $('error-'+f.key).textContent = message; $('error-'+f.key).hidden = false; }
+        }
+      }
+      if (errors.length) {
+        $('validation-errors').innerHTML = '<strong>还有 ' + errors.length + ' 处需要处理</strong><ul>' + errors.map((s) => '<li>'+esc(s)+'</li>').join('') + '</ul>';
+        $('validation-errors').hidden = false;
+        setMobile('fill');
+        const first = document.querySelector('#run-form .invalid') || (n.chart && !$('chart-select').value ? $('chart-select') : $('validation-errors'));
+        first.tabIndex = first === $('validation-errors') ? -1 : first.tabIndex;
+        first.focus();
+        return false;
+      }
+      return true;
+    }
+    function makeResult() {
+      const t = current(), n = needs(t), chart = $('chart-select').selectedOptions[0].textContent, date = $('as-of').value;
+      const replacements = {
+        'chart.title':chart,'profile.name':chart,'profile.gender':'[演示：所选命盘的性别]',
+        'range.label':monthRange() + '（阳历窗口）','years.label':selectedYears().join('、') + ' 流年（春节为界）',
+        'ziwei.birth':'[演示资料位置：' + chart + '的出生资料]',
+        'ziwei.natal':'[演示资料位置：' + chart + '的完整本命文字盘。正式版由服务端带入十二宫与星曜。]',
+        'ziwei.gender_age':'[演示资料位置：基准日 ' + date + ' 的性别与虚岁]',
+        'ziwei.decade_current':'[演示资料位置：基准日 ' + date + ' 所在的完整大限资料]',
+        'ziwei.decades':'[演示资料位置：基准日 ' + date + ' 的当前与下一大限完整资料]',
+        'ziwei.current':'[演示资料位置：' + date + ' 的完整运限叠盘]',
+        'ziwei.months':'[演示资料位置：' + monthRange() + ' 的完整流月资料；正式版按实际状态分段并核对覆盖范围。]',
+        'ziwei.years':'[演示资料位置：' + selectedYears().join('、') + ' 的全部流年状态段，不以单日盘代替全年。]',
+        'question':values._question || '未提供'
+      };
+      for (const f of t.fields) replacements['input.'+f.key] = (values[f.key] || '').trim() || '未提供';
+      const text = '【交互演示文本：资料占位非真实排盘，不供实际分析】\n\n' + t.body.replace(/\{\{([^{}]*)\}\}/g, (_,name) => replacements[name.trim()] ?? '未提供');
+      return {text,stale:false,source:(n.chart ? chart + ' · 基础命盘；' : '本次原始输入；') + (n.date ? '基准日 ' + date + '；' : '') + (n.months ? monthRange() + '；' : '') + (n.years ? selectedYears().join('、') + ' 流年；' : '') + '模板：' + t.title};
+    }
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          const copied = await Promise.race([navigator.clipboard.writeText(text).then(() => true), new Promise((resolve) => setTimeout(() => resolve(false),1800))]);
+          return copied;
+        }
+        const helper = document.createElement('textarea'); helper.value = text; helper.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.append(helper); helper.select();
+        let copied = false; try { copied = document.execCommand('copy'); } finally { helper.remove(); }
+        return copied;
+      } catch { return false; }
+    }
+    async function generate(copy) {
+      if (busy) return;
+      invalidate();
+      if (!validateRun()) return;
+      const version = requestVersion;
+      busy = true; $('preview-button').disabled = true; $('generate-copy').disabled = true;
+      $('generate-copy').querySelector('span').textContent = '正在整理资料…'; $('run-form').setAttribute('aria-busy','true'); renderResult();
+      await new Promise((resolve) => setTimeout(resolve,350));
+      if (version !== requestVersion) {
+        busy = false; $('preview-button').disabled = false; $('generate-copy').disabled = false; $('generate-copy').querySelector('span').textContent = '生成并复制'; $('run-form').removeAttribute('aria-busy'); renderResult(); toast('资料已变更，请按最新内容重新生成。'); return;
+      }
+      result = makeResult(); busy = false; $('preview-button').disabled = false; $('generate-copy').disabled = false;
+      $('generate-copy').querySelector('span').textContent = '生成并复制'; $('run-form').removeAttribute('aria-busy'); renderResult();
+      $('run-note').textContent = '完整提示词已就绪，可以查看或复制。';
+      setMobile('result');
+      if (copy) {
+        const ok = await copyText(result.text);
+        if (ok) toast('已生成并复制完整提示词。');
+        else { toast('已生成。浏览器未允许自动复制，请点结果区的「复制」。'); $('run-note').textContent = '已生成，自动复制未成功；可在结果区再次复制或手动选择文本。'; }
+      } else toast('预览已生成，检查后可直接复制。');
+    }
+    function ensureDraft() {
+      if (!drafts.has(activeId)) drafts.set(activeId,clone(current()));
+      return drafts.get(activeId);
+    }
+    function updateDraftStatus() { $('draft-status').textContent = drafts.has(activeId) || transientIds.has(activeId) ? '未保存 · 草稿保留在当前页面' : '已保存'; renderLibrary(); }
+    function renderEditor() {
+      const t = draft();
+      $('edit-title').value = t.title; $('edit-system').value = t.system; $('body-editor').value = t.body;
+      $('body-editor').setSelectionRange(0,0); $('body-editor').scrollTop = 0;
+      $('editor-errors').hidden = true; renderInspector(); updateDraftStatus();
+    }
+    function renderInspector() {
+      const t = draft(), n = needs(t), sources = CATALOG.filter((c) => n.names.includes(c.name));
+      $('detected-sources').innerHTML = sources.length ? sources.map((c) => '<div class="variable-card"><div>' + esc(c.label) + '<small>' + esc(c.name) + '</small></div><span class="help" style="color:' + (c.unavailable ? 'var(--amber)' : 'var(--green)') + '">' + (c.unavailable ? '待接入' : '自动') + '</span></div>').join('') : '<p class="help">还没有引用资料。可以只写固定文本，也可以插入命盘资料。</p>';
+      $('field-definitions').innerHTML = t.fields.map((f,i) => '<div class="field-card"><div class="field-card-top"><input data-field-index="' + i + '" data-field-prop="label" value="' + esc(f.label) + '" maxlength="80" aria-label="填写项名称 ' + (i+1) + '"><button class="icon-btn" data-remove-field="' + i + '" aria-label="移除填写项 ' + esc(f.label) + '">' + icon('close') + '</button></div><div class="field-options"><select data-field-index="' + i + '" data-field-prop="type" aria-label="填写项类型 ' + (i+1) + '">' + ['text','textarea','integer'].map((v,j) => '<option value="' + v + '"' + (f.type === v ? ' selected' : '') + '>' + ['单行','多行','整数'][j] + '</option>').join('') + '</select><label class="check-label"><input type="checkbox" data-field-index="' + i + '" data-field-prop="required"' + (f.required ? ' checked' : '') + '>必填</label><button class="example-button" data-insert-field="' + esc(f.key) + '">插入正文</button></div><p class="field-key">{{input.' + esc(f.key) + '}}' + (n.names.includes('input.'+f.key) ? '' : ' · 尚未引用') + '</p></div>').join('');
+      $('add-field').disabled = t.fields.length >= 16;
+    }
+    let cursor = {start:0,end:0};
+    function openVariables() { const area = $('body-editor'); cursor = {start:area.selectionStart,end:area.selectionEnd}; $('variable-search').value = ''; renderVariables(); $('variables-dialog').showModal(); $('variable-search').focus(); }
+    function renderVariables() {
+      const q = $('variable-search').value.trim().toLowerCase();
+      const catalog = [...draft().fields.map((f) => ({name:'input.'+f.key,label:f.label,group:'本次填写'})),...CATALOG];
+      $('variable-list').innerHTML = catalog.filter((c) => (c.name+c.label+c.group).toLowerCase().includes(q)).map((c) => '<button class="insert-variable" data-insert="' + esc(c.name) + '"><span>' + esc(c.label) + '<small>{{' + esc(c.name) + '}} · ' + esc(c.group) + '</small></span><span>' + (c.unavailable ? '待接入' : '插入') + '</span></button>').join('') || '<p class="help">没有找到，可以先添加一个本次填写项。</p>';
+    }
+    function insertToken(name,selection) {
+      const area = $('body-editor'), d = ensureDraft(), start = selection ? selection.start : area.selectionStart, end = selection ? selection.end : area.selectionEnd, token = '{{'+name+'}}';
+      d.body = area.value.slice(0,start) + token + area.value.slice(end);
+      area.value = d.body; area.focus(); area.setSelectionRange(start+token.length,start+token.length); renderInspector(); updateDraftStatus();
+    }
+    function openNew(copy) {
+      $('new-title').value = copy ? current().title + ' 副本' : '';
+      $('new-system').value = current().system; $('new-base').value = copy ? 'current' : 'blank';
+      $('new-dialog').showModal(); $('new-title').focus();
+    }
+    $('month-count').innerHTML = Array.from({length:12},(_,i) => '<option value="' + (i+1) + '"' + (i===2 ? ' selected' : '') + '>连续 ' + (i+1) + ' 个月</option>').join('');
+    $('template-list').addEventListener('click',(e) => {const b=e.target.closest('[data-template]'); if(b) switchTemplate(b.dataset.template);});
+    $('template-search').addEventListener('input',renderLibrary);
+    document.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click',() => {filter=b.dataset.filter; document.querySelectorAll('[data-filter]').forEach((x) => {x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b));});renderLibrary();}));
+    $('use-mode').onclick = () => {setMode('use'); renderUse();};
+    $('edit-mode').onclick = () => setMode('edit');
+    $('restore-draft').onclick = () => setMode('edit');
+    document.querySelectorAll('[data-mobile-view]').forEach((b) => b.onclick = () => setMobile(b.dataset.mobileView));
+    $('favorite-template').onclick = () => {current().favorite = !current().favorite; if(drafts.has(activeId)) drafts.get(activeId).favorite=current().favorite;persist();renderLibrary();$('favorite-template').textContent=current().favorite?'★':'☆';$('favorite-template').setAttribute('aria-pressed',String(current().favorite));$('favorite-template').setAttribute('aria-label',current().favorite?'取消常用':'设为常用');};
+    $('manual-fields').addEventListener('input',(e) => {if(e.target.dataset.input){values[e.target.dataset.input]=e.target.value;invalidate();}});
+    for (const id of ['start-month','month-count','year-input','as-of']) $(id).addEventListener('input',() => {invalidate();updateContext();});
+    $('chart-select').addEventListener('change',() => {values={};invalidate();renderFields();updateContext();toast('已切换命盘，并清空上一个人的本次填写。');});
+    $('fill-example').onclick = () => {
+      const examples={action:'想在未来三个月换工作。目前在准备简历，希望兼顾稳定收入与成长空间。',status:'目前工作稳定，想为未来三年寻找更合适的发展方向。',option_a:'继续留在现有团队，争取更大的项目职责。',option_b:'转到另一支团队，尝试新的业务方向。',criteria:'优先考虑成长空间，其次是收入稳定性。',question:'这段时间应该怎样安排精力？',number_a:'17',number_b:'26',_question:'这段时间应该怎样安排精力？'};
+      for(const f of current().fields) if(names(current().body).includes('input.'+f.key)) values[f.key]=examples[f.key] || (f.type==='integer'?'12':'这是一段示例填写内容。');
+      if(names(current().body).includes('question')) values._question=examples._question;
+      invalidate();renderFields();toast('已填入虚构示例，可以直接生成预览。');
+    };
+    $('run-form').onsubmit = (e) => {e.preventDefault();generate(true);};
+    $('preview-button').onclick = () => generate(false);
+    $('copy-result').onclick = async () => {
+      if (!result || result.stale || busy) return;
+      if(await copyText(result.text)) toast('已复制完整提示词。');
+      else {const pre=$('preview-text'),selection=window.getSelection(),range=document.createRange();range.selectNodeContents(pre);selection.removeAllRanges();selection.addRange(range);pre.focus();toast('浏览器未允许复制，已选中完整文本，可手动复制。');}
+    };
+    for(const [id,prop] of [['edit-title','title'],['edit-system','system'],['body-editor','body']]) $(id).addEventListener('input',() => {ensureDraft()[prop]=$(id).value;updateDraftStatus();if(prop==='body') renderInspector();});
+    $('field-definitions').addEventListener('input',(e) => {const i=e.target.dataset.fieldIndex,prop=e.target.dataset.fieldProp;if(i!==undefined&&prop){ensureDraft().fields[Number(i)][prop]=prop==='required'?e.target.checked:e.target.value;updateDraftStatus();}});
+    $('field-definitions').addEventListener('click',(e) => {
+      const remove=e.target.closest('[data-remove-field]'),insert=e.target.closest('[data-insert-field]');
+      if(remove){const d=ensureDraft(),f=d.fields[Number(remove.dataset.removeField)];d.fields.splice(Number(remove.dataset.removeField),1);d.body=d.body.split('{{input.'+f.key+'}}').join('');$('body-editor').value=d.body;renderInspector();updateDraftStatus();toast('已移除填写项及对应的正文引用，可撤销修改。');}
+      if(insert) insertToken('input.'+insert.dataset.insertField);
+    });
+    $('add-field').onclick = () => {
+      const d=ensureDraft();if(d.fields.length>=16)return;
+      let i=1;while(d.fields.some((f)=>f.key==='field_'+i))i++;
+      d.fields.push({key:'field_'+i,label:'新填写项',type:'textarea',required:true});
+      renderInspector();updateDraftStatus();
+      const inputs=$('field-definitions').querySelectorAll('[data-field-prop="label"]');inputs[inputs.length-1].focus();inputs[inputs.length-1].select();
+    };
+    $('open-variables').onclick = openVariables; $('open-variables-side').onclick = openVariables;
+    $('variable-search').oninput = renderVariables;
+    $('variable-list').onclick = (e) => {const b=e.target.closest('[data-insert]');if(b){$('variables-dialog').close();insertToken(b.dataset.insert,cursor);}};
+    $('save-edit').onclick = () => {
+      const d=clone(draft()),errors=validateDefinition(d);
+      if(errors.length){$('editor-errors').innerHTML=errors.map((s)=>'<p>'+esc(s)+'</p>').join('');$('editor-errors').hidden=false;return;}
+      d.title=d.title.trim();
+      templates=templates.map((t)=>t.id===activeId?d:t);drafts.delete(activeId);transientIds.delete(activeId);persist();invalidate();renderLibrary();renderUse();setMode('use');setMobile('fill');toast(storageOK?'模板已保存，可以填写本次资料。':'模板仅在当前页面保留，浏览器无法写入存储。');
+    };
+    $('discard-edit').onclick = () => {drafts.delete(activeId);if(transientIds.has(activeId))drafts.set(activeId,clone(current()));renderEditor();toast(transientIds.has(activeId)?'已恢复新模板的初始草稿。':'已恢复到上次保存的模板。');};
+    $('new-template').onclick = () => openNew(false);$('new-from-library').onclick = () => openNew(false);$('duplicate-template').onclick = () => openNew(true);
+    $('new-form').onsubmit = (e) => {
+      e.preventDefault();const title=$('new-title').value.trim();if(!title)return;
+      const t=$('new-base').value==='current'?clone(current()):{body:'',fields:[],description:'自定义提示词模板',favorite:false};
+      t.id='custom-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);t.title=title;t.system=$('new-system').value;t.favorite=false;
+      requestVersion++;templates.push(t);transientIds.add(t.id);activeId=t.id;values={};result=null;drafts.set(t.id,clone(t));$('new-dialog').close();renderLibrary();renderUse();setMode('edit');$('body-editor').focus();
+      toast('模板草稿已创建，编辑后点「保存并使用」。');
+    };
+    document.querySelectorAll('.close-dialog').forEach((b)=>b.onclick=()=>b.closest('dialog').close());
+    document.querySelectorAll('dialog').forEach((d)=>d.addEventListener('click',(e)=>{const r=d.getBoundingClientRect();if(e.target===d&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))d.close();}));
+    $('reset-demo').onclick=()=>$('reset-dialog').showModal();
+    $('confirm-reset').onclick=()=>{templates=clone(SEEDS);drafts.clear();transientIds.clear();activeId=templates[0].id;values={};result=null;filter='all';requestVersion++;$('template-search').value='';$('chart-select').value='self';$('start-month').value='2026-11';$('month-count').value='3';$('year-input').value='2026, 2027, 2028';$('as-of').value='2026-11-24';document.querySelectorAll('[data-filter]').forEach((b)=>{b.classList.toggle('active',b.dataset.filter==='all');b.setAttribute('aria-pressed',String(b.dataset.filter==='all'));});persist();$('reset-dialog').close();renderLibrary();renderUse();setMode('use');setMobile('fill');toast('已恢复五份初始示例模板。');};
+    document.addEventListener('keydown',(e)=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&!document.querySelector('dialog[open]')){e.preventDefault();if(mode==='use')generate(true);else $('save-edit').click();}});
+    window.addEventListener('beforeunload',(e)=>{if(drafts.size){e.preventDefault();e.returnValue='';}});
+    renderLibrary();renderUse();
+    if(!storageOK) toast('浏览器存储不可用，模板修改仅在当前页面保留。');
+  </script>
+</body>
+</html>

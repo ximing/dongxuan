@@ -25,6 +25,10 @@
 | [本地实现验收](implementation-validation.md) | 本地真实 API、数据库、浏览器流程与当前边界 |
 | [产品方案](product-plan.md) | 自用排盘、命盘、笔记和页面关系 |
 | [提示词与命盘引用](prompt-templates.md) | 模板、变量、连续月份、外部 Agent 复制及梅花扩展 |
+| [提示词交互优化提案](prompt-interaction-redesign.md) | 默认使用、独立编辑、并排预览与生成复制；附[交互演示](design/prompt-workbench.html) |
+| [提示词业务实现验收](prompt-interaction-validation.md) | 实际页面接入、草稿/预览状态、14 项回归与真实 API 浏览器验收 |
+| [提示词富文本与 JSON 方案](prompt-richtext-plan.md) | 中文资料块、结构化存储、旧模板转换、纯文本生成与 SubAgent 审查流程 |
+| [提示词富文本实施验收](prompt-richtext-validation.md) | JSONB 迁移、前后文本等价、31 项前端回归、独立审查及真实浏览器证据 |
 | [紫微规则](ziwei-rules.md) | 技能对齐、晚子、四柱、运限与参考脚本边界 |
 | [架构方案](architecture.md) | 命盘快照、笔记、迁移与扩展 |
 | [实施与验收](roadmap.md) | 以排盘为先的交付顺序 |

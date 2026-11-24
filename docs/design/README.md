@@ -1,5 +1,9 @@
 # 东玄个人使用版 HTML 设计稿
 
+新增：[提示词交互优化演示](prompt-workbench.html)，对应[优化提案](../prompt-interaction-redesign.md)。这是独立的新版交互原型，可直接打开，不影响下方原有整站设计稿。
+
+新增：[提示词富文本演示](prompt-richtext.html)，对应[富文本与 JSON 方案](../prompt-richtext-plan.md)。演示中文资料标签、JSON 存储与纯文本输出的关系；正式 Tiptap 实现与验证见[实施验收](../prompt-richtext-validation.md)。
+
 打开 [index.html](index.html)。无需构建或连接数据库，保留同目录的 CSS、JS 和示例数据即可。当前版本：**自己用，也帮别人看；一张命盘就是一个人，不需要职业工作台。**
 
 ## 页面

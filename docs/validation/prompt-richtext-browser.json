@@ -1,0 +1,138 @@
+{
+  "date": "2026-11-24",
+  "environment": "local dev API 3041, web 5194, Orca WebKit",
+  "checks": [
+    {
+      "name": "原流月模板初入编辑与无修改通知保持已保存",
+      "pass": true
+    },
+    {
+      "name": "输入然后撤销至原文恢复原JSON和已保存",
+      "pass": true
+    },
+    {
+      "name": "942px长正文在474px内部scroll区/518px编辑框内",
+      "pass": true
+    },
+    {
+      "name": "range.label正文显示阳历月份范围",
+      "pass": true
+    },
+    {
+      "name": "填写项名称即时刷新中文标签，JSON和editor实例稳定",
+      "pass": true
+    },
+    {
+      "name": "资料弹窗按原ProseMirror选区插入节点",
+      "pass": true
+    },
+    {
+      "name": "原子资料删除后undo恢复稳定name",
+      "pass": true,
+      "note": "按独立编辑事务验收；快速连续编辑属于同一undo组"
+    },
+    {
+      "name": "真实浏览器输入中文与emoji，保存刷新后保留",
+      "pass": true
+    },
+    {
+      "name": "普通paste ClipboardEvent双括号保持text，引用节点数不增加",
+      "pass": true
+    },
+    {
+      "name": "明确旧文导入解析引用，残缺节点阻断保存且revision不变",
+      "pass": true
+    },
+    {
+      "name": "错误节点转普通文字保留原片段；撤销修改恢复已保存",
+      "pass": true
+    }
+  ],
+  "copy": {
+    "checks": [
+      {
+        "name": "生成并复制写入实际剪贴板",
+        "pass": true
+      },
+      {
+        "name": "活动引用展开实际月份",
+        "pass": true
+      },
+      {
+        "name": "普通双括号与填写值保持字面",
+        "pass": true
+      },
+      {
+        "name": "最终复制只有text",
+        "pass": true
+      }
+    ],
+    "textLength": 1852
+  },
+  "reload": {
+    "checks": [
+      {
+        "name": "刷新恢复标题列表和粗体",
+        "pass": true
+      },
+      {
+        "name": "刷新恢复稳定资料名与新中文名称",
+        "pass": true
+      },
+      {
+        "name": "刷新保留普通双括号和中文输入",
+        "pass": true
+      },
+      {
+        "name": "刷新初始保持已保存",
+        "pass": true
+      }
+    ],
+    "viewport": {
+      "h": 912,
+      "w": 1515
+    }
+  },
+  "mobile390": {
+    "checks": [
+      {
+        "name": "390手机页面无横向溢出",
+        "pass": true
+      },
+      {
+        "name": "手机编辑面有界",
+        "pass": true
+      }
+    ],
+    "labels": [
+      "阳历月份范围",
+      "想做的事",
+      "本命文字盘"
+    ],
+    "size": {
+      "editorHeight": 420,
+      "pageWidth": 390,
+      "w": 390
+    }
+  },
+  "mobile360": {
+    "pageWidth": 360,
+    "viewportWidth": 360,
+    "editorHeight": 398,
+    "noHorizontalOverflow": true
+  },
+  "modal": {
+    "cancelSelectionRestored": true,
+    "editorFocused": true,
+    "modalFits": true,
+    "overflow": false
+  },
+  "cleanup": {
+    "afterStatus": 404,
+    "fixtureCleanupStatus": 204
+  },
+  "limits": [
+    "未执行操作系统中文IME候选窗口流程；composition保护由自动回归覆盖，浏览器实测中文与emoji文本输入。",
+    "移动端为Orca触控视口模拟，不宣称实体iOS/Android设备验收。"
+  ]
+}
