@@ -1,12 +1,13 @@
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useMatch } from 'react-router';
 import { NAV, ROUTES } from '@/routes';
 
 export function Layout() {
+  const promptWorkspace = Boolean(useMatch('/prompts'));
   return (
     <>
       <a className="skip-link" href="#content">跳到主要内容</a>
       <header className="personal-top">
-        <div className="personal-top-inner">
+        <div className={'personal-top-inner' + (promptWorkspace ? ' prompt-shell-width' : '')}>
           <NavLink to={ROUTES.home} className="personal-brand">
             <span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span>
             <span className="brand-name">东玄</span>
@@ -20,7 +21,7 @@ export function Layout() {
           </NavLink>
         </div>
       </header>
-      <div className="personal-content" id="content" tabIndex={-1}>
+      <div className={'personal-content' + (promptWorkspace ? ' prompt-shell-width' : '')} id="content" tabIndex={-1}>
         <Outlet />
         <footer className="personal-footer"><span>东玄</span><span className="preview-meta">个人排盘与记录</span><span>紫微斗数 · iztro</span></footer>
       </div>

@@ -13,3 +13,4 @@
 @import './pages/settings/styles.css';
 @import './components/pagination/styles.css';
 @import './components/ui/ui.css';
+@import './components/ui/rich-prompt-editor.css';

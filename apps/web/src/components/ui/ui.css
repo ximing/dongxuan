@@ -99,3 +99,9 @@
   .prompt-range .ui-select { flex: 1; min-width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) { .ui-button, .ui-input, .ui-textarea, .ui-control { transition: none; } }
+/* Low-frequency actions share the same dismissal and keyboard behavior. */
+.ui-action-menu { min-width:130px;padding:5px;border:1px solid var(--line);border-radius:6px;background:white;box-shadow:0 4px 18px #23332d14;z-index:50 }
+.ui-action-menu>[role=menuitem] { display:block;width:100%;text-align:left;padding:8px 10px;border-radius:4px;font-size:12px }
+.ui-action-menu>[role=menuitem]:hover,.ui-action-menu>[role=menuitem]:focus-visible { background:var(--soft) }
+.ui-action-menu>[role=menuitem].destructive { color:var(--red) }
+.ui-action-menu>[role=menuitem]:disabled { opacity:.45 }

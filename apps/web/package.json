@@ -15,14 +15,23 @@
     "@rabjs/react": "^9.4.1",
     "@radix-ui/react-popover": "^1.3.1",
     "@radix-ui/react-select": "^2.4.1",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-bubble-menu": "3.31.3",
+    "@tiptap/extension-floating-menu": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router": "^7.13.0"
   },
   "devDependencies": {
+    "@types/jsdom": "21.1.7",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
+    "jsdom": "26.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }

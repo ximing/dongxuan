@@ -12,7 +12,8 @@
     "dev": "pnpm --filter @dongxuan/dto build && pnpm -r --parallel --filter @dongxuan/server --filter @dongxuan/web dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @dongxuan/dto build && pnpm --filter @dongxuan/server test",
+    "test": "pnpm --filter @dongxuan/dto build && pnpm --filter @dongxuan/server test && pnpm test:prompts",
+    "test:prompts": "pnpm --filter @dongxuan/server exec tsx --tsconfig ../../apps/web/tsconfig.app.json --test ../../apps/web/tests/*.test.ts",
     "dev:local:db": "docker compose -f compose.local.yml up -d",
     "dev:local:server": "node apps/server/scripts/local-env.mjs dev",
     "test:local": "node apps/server/scripts/local-env.mjs test"
