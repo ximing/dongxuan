@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { chartInputSchema, type ChartView, type ChartSummary, type StarView } from './base.js';
+import { importLegacyPrompt, promptDocumentSchema } from './prompt-document.js';
 
 export const SYSTEM_IDS = ['ziwei', 'bazi', 'meihua', 'qimen'] as const;
 export type SystemId = (typeof SYSTEM_IDS)[number];
@@ -40,9 +41,18 @@ export type NoteInput = z.infer<typeof noteInputSchema>;
 export type NoteRecord = { id: string; chartId: string | null; snapshotId: string | null; body: string; revision: number; createdAt: string; updatedAt: string };
 export const promptFieldSchema = z.object({ key: z.string().regex(/^[a-z][a-z0-9_]{0,31}$/), label: z.string().trim().min(1).max(80), type: z.enum(['text','textarea','integer']), required: z.boolean(), missingPolicy: z.enum(['block','marker']).optional() });
 export type PromptField = z.infer<typeof promptFieldSchema>;
-export const promptTemplateInputSchema = z.object({ title: z.string().trim().min(1).max(80), system: z.enum(['ziwei','meihua']), body: z.string().min(1).max(30000), inputsSchema: z.array(promptFieldSchema).max(16).default([]), dataRequirements: z.array(z.string().max(64)).max(64).default([]), missingPolicy: z.string().max(1000).optional() }).refine(t => new Set(t.inputsSchema.map(f => f.key)).size === t.inputsSchema.length, {message:'填写项变量名不能重复'});
+export const promptTemplateInputSchema = z.object({
+  title: z.string().trim().min(1).max(80), system: z.enum(['ziwei','meihua']),
+  body: z.string().min(1).max(30000).optional(), bodyJson: promptDocumentSchema.optional(),
+  inputsSchema: z.array(promptFieldSchema).max(16).default([]), dataRequirements: z.array(z.string().max(64)).max(64).default([]),
+  missingPolicy: z.string().max(1000).optional(),
+}).superRefine((template, context) => {
+  if ((template.body !== undefined) === (template.bodyJson !== undefined)) context.addIssue({ code: z.ZodIssueCode.custom, message: '请仅提交 JSON 正文或旧版文本正文中的一个。' });
+  if (new Set(template.inputsSchema.map(field => field.key)).size !== template.inputsSchema.length) context.addIssue({ code: z.ZodIssueCode.custom, message: '填写项变量名不能重复' });
+}).transform(({ body, bodyJson, ...template }) => ({ ...template, bodyJson: bodyJson ?? importLegacyPrompt(body!) }));
 export type PromptTemplateInput = z.infer<typeof promptTemplateInputSchema>;
-export type PromptTemplate = PromptTemplateInput & { id: string; revision: number; variableSchemaVersion: number; createdAt: string; updatedAt: string };
+export type PromptTemplateWrite = z.input<typeof promptTemplateInputSchema>;
+export type PromptTemplate = PromptTemplateInput & { body: string; id: string; revision: number; variableSchemaVersion: number; createdAt: string; updatedAt: string };
 export const promptPreviewInputSchema = z.object({ templateId: z.string().uuid().optional(), revision: z.number().int().positive().optional(), draft: promptTemplateInputSchema.optional(), bindings: z.object({ chartId: z.string().uuid().optional(), snapshotId: z.string().uuid().optional(), meihuaDraftId: z.string().uuid().optional() }).default({}), asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), months: z.object({ startMonth: z.string().regex(/^\d{4}-\d{2}$/), count: z.number().int().min(1).max(12) }).optional(), years: z.array(z.number().int().min(1901).max(2099)).max(12).optional(), inputValues: z.record(z.union([z.string().max(30000), z.number().finite()])).default({}), question: z.string().max(30000).optional() });
 export type PromptPreviewInput = z.infer<typeof promptPreviewInputSchema>;
 export type PromptPreview = { text: string; sources: string[]; fingerprint: string; coverage: Array<{ from: string; to: string; label: string }>; templateRevision: number | null; diagnostics: string[] };
