@@ -1,0 +1,31 @@
+/* 设置。 */
+.settings-link { margin-left:auto;display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px }
+.settings-width { max-width:780px }
+.setting-row { display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--line) }
+.setting-row:last-child { border:0;padding-bottom:0 }
+.setting-row p { font-size:12px;color:var(--muted);margin-top:5px }
+@media(max-width:760px) {
+  .settings-link span { display:none }
+  .settings-link svg { width:15px }
+  .setting-row { gap:12px;align-items:flex-start }
+  .setting-row .btn { flex-shrink:0 }
+}
+@media(max-width:370px) {
+  .settings-link { margin-left:auto }
+}
+.settings-link { flex-shrink:0 }
+@media(max-width:760px) {
+  .settings-link { margin-left:auto }
+}
+.settings form { display:grid;gap:14px }
+.settings form>label { display:grid;gap:6px;font-size:12px }
+.settings { max-width:680px }
+.settings>section { padding:22px 0;border-bottom:1px solid var(--line) }
+.settings h1 { margin-bottom:10px }
+.settings h2 { margin-bottom:16px }
+.settings>p { font-size:13px;color:var(--muted) }
+.settings form { max-width:400px }
+.settings .btn { width:fit-content }
+@media(max-width:760px) {
+  .settings { max-width:100% }
+}

@@ -1,0 +1,22 @@
+/* 通用对话框与提示。确认框组件在 components/ui。 */
+dialog { width:calc(100% - 32px);max-width:560px;max-height:90vh;padding:0;border:1px solid #ccd7d0;border-radius:12px;background:white;color:var(--text);box-shadow:0 24px 80px #20362b26;overflow:auto }
+dialog::backdrop { background:#1a302840;backdrop-filter:blur(3px) }
+.dialog-head { display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 24px 18px }
+.dialog-head h2 { font-size:20px }
+.close-btn { display:grid;place-items:center;padding:5px;border-radius:5px;color:var(--muted) }
+.close-btn:hover { background:var(--soft) }
+.dialog-body { padding:0 24px 24px }
+.dialog-actions { display:flex;justify-content:flex-end;gap:8px;margin-top:22px }
+.dialog-body .summary-preview { background:#f7f9f8;border:1px solid var(--line);border-radius:6px;padding:16px;line-height:1.8 }
+.toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);max-width:calc(100% - 32px);background:#263b2f;color:white;padding:10px 18px;border-radius:8px;font-size:13px;z-index:40;box-shadow:0 4px 18px #142b1d20;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s }
+.toast.visible { opacity:1;transform:translateX(-50%) }
+@media(max-width:760px) {
+  .dialog-head { padding:20px 20px 16px }
+  .dialog-body { padding:0 20px 22px }
+  .dialog-body .form-grid { grid-template-columns:1fr }
+  .dialog-body .field.wide { grid-column:auto }
+  .toast { font-size:12px }
+}
+@media print {
+  .toast { display:none!important }
+}

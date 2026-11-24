@@ -1,0 +1,26 @@
+/* 随手记。 */
+.personal-notes { display:grid;gap:16px }
+.personal-note { padding:20px 0;border-top:1px solid var(--line) }
+.note-meta { display:flex;align-items:baseline;justify-content:space-between;gap:16px;font-size:11px;color:var(--muted);margin-bottom:12px }
+.personal-note p { font-size:14px;line-height:1.9;white-space:pre-wrap;max-width:70ch }
+.note-actions { display:flex;align-items:center;gap:14px;margin-top:16px }
+.note-actions>:first-child { margin-right:auto }
+.note-actions button { padding:0;font-size:12px;color:var(--muted) }
+.note-actions .text-link { color:var(--accent) }
+.notes-empty { padding:30px 0;border-top:1px solid var(--line);color:var(--muted) }
+.notes-empty span { font-size:16px;color:var(--text) }
+.notes-empty p { font-size:13px;margin-top:7px }
+.notes-section { max-width:800px }
+.note-invitation .btn { margin-top:12px }
+@media(max-width:760px) {
+  .personal-note { padding:16px 0 }
+  .note-meta { flex-wrap:wrap;gap:5px;font-size:10px }
+  .personal-note p { font-size:14px }
+}
+.note-body { white-space:pre-wrap;overflow-wrap:anywhere }
+.note-editor { width:100%;min-height:90px;border:1px solid var(--line);border-radius:5px;padding:10px;font:inherit }
+.note-form { margin-bottom:16px }
+.note-form .actions { margin-top:9px }
+@media(max-width:760px) {
+  .note-form .note-editor { font-size:16px }
+}

@@ -1,0 +1,4 @@
+/* 列表分页。 */
+.list-pagination { display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin:20px 0 6px }
+.list-pagination .form-error { width:100%;text-align:center }
+.list-pagination .plain-button { font-size:11px }

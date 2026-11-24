@@ -1,0 +1,15 @@
+/* 命盘列表行。 */
+.personal-chart-card { display:flex;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--line) }
+.chart-card-mark { width:40px;height:44px;display:grid;place-items:center;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:500;flex-shrink:0 }
+.personal-chart-card h3 { font-size:16px;font-weight:500 }
+.personal-chart-card p { font-size:12px;color:var(--muted);margin:5px 0 2px }
+.personal-chart-card small { font-size:11px;color:var(--muted) }
+.chart-book-list { border-top:1px solid var(--line) }
+@media(max-width:760px) {
+  .personal-chart-card { gap:12px;padding:16px 0 }
+  .personal-chart-card h3 { font-size:14px }
+  .personal-chart-card p { font-size:11px }
+  .personal-chart-card small { font-size:10px }
+  .chart-card-mark { width:32px;height:36px;font-size:11px }
+  .personal-chart-card .btn { font-size:11px;padding:5px 8px }
+}

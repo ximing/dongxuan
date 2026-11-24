@@ -1,0 +1,15 @@
+/* 全局令牌先加载。各目录的样式跟在所属视图旁边，这里按层叠顺序集中引入。 */
+@import './styles.css';
+@import './shell/styles.css';
+@import './components/ui/dialog.css';
+@import './components/birth-fields/styles.css';
+@import './pages/home/styles.css';
+@import './components/chart-list/styles.css';
+@import './components/notes/styles.css';
+@import './pages/chart/styles.css';
+@import './pages/prompts/styles.css';
+@import './pages/meihua/styles.css';
+@import './pages/login/styles.css';
+@import './pages/settings/styles.css';
+@import './components/pagination/styles.css';
+@import './components/ui/ui.css';
