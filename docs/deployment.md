@@ -33,4 +33,13 @@ app 目录包含 `compose.production.yml`、`.env`、`image.env`、`deploy.sh`�
 
 ## 本次部署结果
 
-流水线、镜像摘要、数据库迁移及 HTTPS 验证结果将在实际发布完成后记录。
+2026-11-24 已完成首次部署及新流水线复验：
+
+- [最终完整流水线](https://github.com/ximing/dongxuan/actions/runs/45367311498) 的 check、image、deploy 全部成功；源码为 `a2027d4b8850636eddcc13f5fa866a116fd25b9f`。完整后端 50 项和前端 31 项通过，保留全部业务断言；全年计算用例按实际 CPU 消耗设置独立超时预算。
+- 实际运行镜像为 `ghcr.io/ximing/dongxuan@sha256:8ee437c926b2dbf83df0ce8f3c0d1e0715eb1d767a83fc1906c155e8708b7370`，容器 running / healthy，用户 node、根文件系统只读。
+- 生产数据库使用预建的独立空库与非超级用户，未导入本地数据。迁移版本为 1–5，模板正文列为 JSONB，回填结果 total / ready / failed 均为 0。
+- app 机发布前备份为 `backups/before-20261124T091008Z.dump`（首次空库）和 `backups/before-20261124T094226Z.dump`（已建结构）；均通过 pg_restore 归档目录校验。临时账号及其命盘、快照、模板已按身份限定清理。
+- 入口机 nginx -t 通过后 reload；HTTP 301 跳转 HTTPS，域名健康接口返回 `{"ok":true}`。16 项线上检查覆盖注册、登录、Secure / HttpOnly cookie、鉴权、排盘持久化、四份 JSON 种子、模板保存和纯文本生成，全部通过。见[脱敏检查记录](validation/deployment-smoke.json)。
+- 真实浏览器验证登录和编辑器懒加载，中文「阳历月份范围」、工具栏「插入资料」及初始已保存状态正常；已查看[登录页](validation/screenshots/deployment-login.png)和[提示词编辑页](validation/screenshots/deployment-prompts.png)截图。图片使用临时验收账号，相关数据已清理。
+
+当前可以直接在登录页用邮箱密码注册。统一账号仍关闭，没有为用户创建或预设生产密码。

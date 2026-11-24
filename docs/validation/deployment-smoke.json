@@ -1,0 +1,88 @@
+{
+  "origin": "https://dx.aimo.plus",
+  "checks": [
+    {
+      "name": "HTTPS health",
+      "pass": true
+    },
+    {
+      "name": "anonymous API requires login",
+      "pass": true
+    },
+    {
+      "name": "SPA /",
+      "pass": true
+    },
+    {
+      "name": "SPA /login",
+      "pass": true
+    },
+    {
+      "name": "SPA /prompts",
+      "pass": true
+    },
+    {
+      "name": "register via HTTPS",
+      "pass": true
+    },
+    {
+      "name": "production cookies secure and HttpOnly",
+      "pass": true
+    },
+    {
+      "name": "signed cookie session",
+      "pass": true
+    },
+    {
+      "name": "four JSON template seeds",
+      "pass": true
+    },
+    {
+      "name": "native runtime computes and persists chart",
+      "pass": true
+    },
+    {
+      "name": "chart readable",
+      "pass": true
+    },
+    {
+      "name": "JSON template persisted",
+      "pass": true
+    },
+    {
+      "name": "JSON compiles to literal text",
+      "pass": true
+    },
+    {
+      "name": "logout",
+      "pass": true
+    },
+    {
+      "name": "password login",
+      "pass": true
+    },
+    {
+      "name": "login session retained",
+      "pass": true
+    }
+  ],
+  "cleanup": "Temporary account and its chart/snapshot/templates removed in an identity-checked transaction; remaining QA users: 0",
+  "browser": {
+    "login": "passed via real HTTPS page",
+    "promptEditor": "Chinese range label, insert control in toolbar, saved state verified"
+  },
+  "codeCommit": "a2027d4b8850636eddcc13f5fa866a116fd25b9f",
+  "workflow": "https://github.com/ximing/dongxuan/actions/runs/45367311498",
+  "workflowConclusion": "success",
+  "image": "ghcr.io/ximing/dongxuan@sha256:8ee437c926b2dbf83df0ce8f3c0d1e0715eb1d767a83fc1906c155e8708b7370",
+  "finalHealth": {
+    "ok": true
+  },
+  "databaseMigrations": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ]
+}
