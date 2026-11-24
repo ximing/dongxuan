@@ -7,7 +7,7 @@ import { AppError } from '../errors.js';
 import { ZIWEI_CAPABILITY } from '../domain/ziwei/index.js';
 import { transaction, owned, revision, json, refConflict } from './store.js';
 import { noteRecord, templateRecord, meihuaRecord } from './records.js';
-import { createChartRecord, listChartRecords, readChart, replaceChartInput, previewView, saveView, snapshotRecord } from './charts.js';
+import { createChartRecord, listChartRecords, readChart, replaceChartInput, previewView, saveView, snapshotRecord, chartFlowOptions } from './charts.js';
 import { ensureSeeds, buildPrompt } from './prompts.js';
 import { VARIABLES, templateChecks } from './prompt-engine.js';
 import {listPage} from './pagination.js';
@@ -22,6 +22,7 @@ export function registerV2Routes(app: FastifyInstance) {
     app.get('/api/v2/charts',options,async(req)=>{const q=querySchema.parse(req.query);return listChartRecords(requireUser(req).id,q.search,{rawQuery:req.query,archived:q.archived});});
     app.post('/api/v2/charts', options, async (req, reply) => reply.code(201).send(await createChartRecord(requireUser(req).id, ziweiInputSchema.parse(req.body), String(req.headers['idempotency-key'] || '') || undefined)));
     app.get('/api/v2/charts/:id', options, async (req) => readChart(requireUser(req).id, params(req)));
+    app.get('/api/v2/charts/:id/flow-options', options, async (req) => chartFlowOptions(requireUser(req).id, params(req), z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), year: z.coerce.number().int().min(1900).max(2099).optional() }).parse(req.query)));
     app.patch('/api/v2/charts/:id', options, async (req) => { const t = chartPatchSchema.parse(req.body), u = requireUser(req).id, id = params(req); return transaction(async (db) => { const r = await owned('charts', u, id, db); revision(r, t.revision); const next = await db.query('UPDATE charts SET title=$3,relation=$4,remark=$5,archived_at=$6,revision=revision+1,updated_at=now() WHERE id=$1 AND user_id=$2 AND revision=$7 RETURNING id', [id, u, t.title ?? r.title, t.relation === undefined ? r.relation : t.relation || null, t.remark === undefined ? r.remark : t.remark || null, t.archived === undefined ? r.archived_at : t.archived ? new Date() : null, t.revision]); if (!next.rows[0])
         throw AppError.of(409, 'CONFLICT', '命盘已更新，请刷新'); return readChart(u, id, db); }); });
     app.delete('/api/v2/charts/:id', options, async (req, reply) => { const u = requireUser(req).id, id = params(req); try {

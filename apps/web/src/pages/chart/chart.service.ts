@@ -1,6 +1,6 @@
 import { Service } from '@rabjs/react';
-import type { BirthProfile, ChartRecord, HoroscopeLayer, ViewChartSnapshot, ViewPreview, ZiweiDayResult, ZiweiQuery } from '@dongxuan/dto';
-import { getChart, getSnapshot, patchChart, previewChartView, reviseChart, saveChartView } from '@/api/charts';
+import type { BirthProfile, ChartRecord, HoroscopeLayer, ViewChartSnapshot, ViewPreview, ZiweiDayResult, ZiweiFlowOptions, ZiweiQuery } from '@dongxuan/dto';
+import { getChart, getChartFlowOptions, getSnapshot, patchChart, previewChartView, reviseChart, saveChartView } from '@/api/charts';
 import { errorMessage, monthNow, today } from '@/lib/format';
 import { PagedList } from '@/lib/paged-list';
 
@@ -28,6 +28,12 @@ export class ChartService extends Service {
   newRemark = '';
   birthDraft: BirthProfile = { calendar: 'solar' };
   focus = false;
+  flowOptions: ZiweiFlowOptions | null = null;
+  periodsLoading = false;
+  periodsError = '';
+  selectedStartAge: number | null | undefined = undefined;
+  childhoodDate = '';
+  _periodVersion = 0;
   _requestVersion = 0;
   _inFlight = false;
   _openVersion = 0;
@@ -50,14 +56,91 @@ export class ChartService extends Service {
   }
 
   get layers(): HoroscopeLayer[] {
+    if (this.level === 'natal') return [];
+    if (this.viewResult?.decadal) return [this.viewResult.decadal.layer];
     const day = this.activeDay;
     if (!day) return [];
-    return [day.decadal, day.yearly, day.monthly, day.daily].filter((layer): layer is HoroscopeLayer => Boolean(layer));
+    const count = ['decadal', 'yearly', 'monthly', 'daily'].indexOf(this.level) + 1;
+    return [day.decadal, day.yearly, day.monthly, day.daily].slice(0, count).filter((layer): layer is HoroscopeLayer => Boolean(layer));
   }
 
   get flowLayer(): HoroscopeLayer | undefined {
     if (this.level === 'natal') return undefined;
+    if (this.level === 'decadal' && this.viewResult?.decadal) return this.viewResult.decadal.layer;
     return this.dayLayer(this.level);
+  }
+
+  get selectedMonth() { return this.flowOptions?.months.find(month => month.from <= this.date && month.to >= this.date); }
+  get flowHeading(): string {
+    const decade = this.viewResult?.decadal;
+    if (decade) return `${decade.range[0]}–${decade.range[1]} 虚岁 · ${decade.fromYear}–${decade.toYear}`;
+    return this.activeDay ? `${this.activeDay.date} · ${this.activeDay.nominalAge} 虚岁` : '';
+  }
+  get savingView(): boolean { return this._inFlight; }
+
+  async loadFlowOptions(year?: number): Promise<ZiweiFlowOptions | null> {
+    const chart = this.chart;
+    if (!chart) return null;
+    const version = ++this._periodVersion;
+    this.periodsLoading = true;
+    this.periodsError = '';
+    try {
+      const options = await getChartFlowOptions(chart.id, this.date, year);
+      if (version !== this._periodVersion || this.chart?.id !== chart.id) return null;
+      this.flowOptions = options;
+      this.date = options.date;
+      if (this.selectedStartAge === undefined) this.selectedStartAge = options.defaultStartAge;
+      return options;
+    } catch (error) {
+      if (version === this._periodVersion) this.periodsError = errorMessage(error);
+      return null;
+    } finally {
+      if (version === this._periodVersion) this.periodsLoading = false;
+    }
+  }
+
+  async calculateCurrent(): Promise<void> {
+    const level = this.level;
+    if (level === 'natal' || !this.flowOptions) return;
+    if (level === 'decadal' && this.selectedStartAge != null) {
+      await this.calculate({ mode: 'decadal', startAge: this.selectedStartAge });
+    } else {
+      await this.calculate({ mode: 'day', date: level === 'decadal' ? this.childhoodDate || this.flowOptions.asOfDate : this.date, includeDaily: level === 'daily', level });
+    }
+  }
+
+  async selectDecade(value: string): Promise<void> {
+    this.invalidate();
+    this.selectedStartAge = value === 'childhood' ? null : Number(value);
+    await this.calculateCurrent();
+  }
+
+  async selectYear(value: string): Promise<void> {
+    this.invalidate();
+    const version = this._requestVersion;
+    const previous = this.selectedMonth;
+    const options = await this.loadFlowOptions(Number(value));
+    if (!options || version !== this._requestVersion) return;
+    this.date = this.level === 'monthly'
+      ? (options.months.find(month => month.month === previous?.month && month.isLeapMonth === previous?.isLeapMonth && month.part === previous?.part)?.from ?? options.months[0]?.from ?? options.yearDate)
+      : options.yearDate;
+    await this.calculateCurrent();
+  }
+
+  async selectMonth(id: string): Promise<void> {
+    const month = this.flowOptions?.months.find(item => item.id === id);
+    if (!month) return;
+    this.invalidate();
+    this.date = month.from;
+    await this.calculateCurrent();
+  }
+
+  async selectDate(date: string): Promise<void> {
+    if (!date) return;
+    this.invalidate();
+    const version = this._requestVersion;
+    this.date = date;
+    if (await this.loadFlowOptions() && version === this._requestVersion) await this.calculateCurrent();
   }
 
   get text(): string {
@@ -73,6 +156,13 @@ export class ChartService extends Service {
 
   async open(id: string): Promise<void> {
     const version = ++this._openVersion;
+    this.invalidate();
+    this._periodVersion += 1;
+    this.flowOptions = null;
+    this.selectedStartAge = undefined;
+    this.childhoodDate = '';
+    this.level = 'natal';
+    this.date = today();
     this.chart = null;
     this.preview = null;
     this.saved = null;
@@ -85,6 +175,8 @@ export class ChartService extends Service {
       this.newTitle = chart.title;
       this.newRelation = chart.relation || '';
       this.newRemark = chart.remark || '';
+      await this.loadFlowOptions();
+      if (version === this._openVersion && !this.saved) await this.calculateCurrent();
     } catch (error) {
       if (version === this._openVersion) this.error = errorMessage(error);
     }
@@ -92,6 +184,8 @@ export class ChartService extends Service {
 
   cancelOpen(): void {
     this._openVersion += 1;
+    this._periodVersion += 1;
+    this.invalidate();
     this.views.cancel();
   }
 
@@ -105,17 +199,28 @@ export class ChartService extends Service {
       const saved = await getSnapshot(snapshotId);
       if (version !== this._savedVersion) return;
       if (saved.chartId !== chartId) throw new Error('保存视图不属于当前命盘');
+      this._requestVersion += 1;
+      this.pending = false;
       this.saved = saved;
       this.preview = null;
-      if (saved.query.mode === 'day') {
+      if (saved.query.mode === 'decadal') {
+        this.selectedStartAge = saved.query.startAge;
+        this.level = 'decadal';
+        this.tab = 'board';
+      } else if (saved.query.mode === 'day') {
         this.date = saved.query.date;
         this.level = saved.query.level;
         this.tab = 'board';
+        if (saved.query.level === 'decadal') {
+          this.selectedStartAge = saved.result.day?.decadal.range?.[0] ?? null;
+          this.childhoodDate = this.selectedStartAge == null ? saved.query.date : '';
+        }
       } else if (saved.query.mode === 'months') {
         this.start = saved.query.startMonth;
         this.count = saved.query.count;
         this.tab = 'months';
       }
+      if (this.chart?.id === chartId && saved.query.mode === 'day') await this.loadFlowOptions();
     } catch (error) {
       if (version === this._savedVersion) this.error = errorMessage(error);
     }
@@ -127,6 +232,8 @@ export class ChartService extends Service {
 
   invalidate(): void {
     this._requestVersion += 1;
+    this._savedVersion += 1;
+    this.pending = false;
     this.preview = null;
     this.saved = null;
     this.message = '';
@@ -134,20 +241,13 @@ export class ChartService extends Service {
   }
 
   setLevel(level: ChartLevel): void {
+    this.invalidate();
     this.level = level;
+    void this.calculateCurrent();
   }
 
   setTab(tab: string): void {
     this.tab = tab;
-  }
-
-  setDatePart(part: number, value: string): void {
-    const pieces = this.date.split('-');
-    pieces[part] = value;
-    const year = Number(pieces[0]);
-    const month = Number(pieces[1]);
-    pieces[2] = String(Math.min(Number(pieces[2]), new Date(year, month, 0).getDate())).padStart(2, '0');
-    this.date = pieces.join('-');
   }
 
   setStart(value: string): void {
@@ -243,22 +343,21 @@ export class ChartService extends Service {
 
   async calculate(query: ZiweiQuery): Promise<void> {
     if (this._inFlight || !this.chart) return;
-    this._inFlight = true;
+    const chartId = this.chart.id;
     const version = ++this._requestVersion;
     this.pending = true;
     this.error = '';
     this.message = '';
     try {
-      const next = await previewChartView(this.chart.id, query);
-      if (version !== this._requestVersion) return;
+      const next = await previewChartView(chartId, query);
+      if (version !== this._requestVersion || chartId !== this.chart?.id) return;
       this.preview = next;
       this.saved = null;
       this.segmentId = '';
     } catch (error) {
       if (version === this._requestVersion) this.error = errorMessage(error);
     } finally {
-      this._inFlight = false;
-      this.pending = false;
+      if (version === this._requestVersion) this.pending = false;
     }
   }
 
@@ -276,6 +375,11 @@ export class ChartService extends Service {
       this.chart = await reviseChart(chart.id, { ...birth, title: chart.title, calendar: birth.calendar || 'solar', system: 'ziwei' });
       this.menuMode = '';
       this.invalidate();
+      this.selectedStartAge = undefined;
+      this.childhoodDate = '';
+      this.flowOptions = null;
+      await this.loadFlowOptions();
+      await this.calculateCurrent();
       this.views.reload(`/api/v2/charts/${chart.id}/views`);
       this.message = '已按新的出生资料重算这张盘';
       return true;
@@ -301,29 +405,34 @@ export class ChartService extends Service {
   }
 
   async saveView(): Promise<ViewChartSnapshot | null> {
-    if (!this.preview || this._inFlight || !this.chart) return null;
+    if (!this.preview || this.pending || this._inFlight || !this.chart) return null;
     this._inFlight = true;
+    const chartId = this.chart.id;
     const version = this._requestVersion;
     this.pending = true;
     try {
-      const view = await saveChartView(this.chart.id, this.preview.previewToken, crypto.randomUUID());
+      const view = await saveChartView(chartId, this.preview.previewToken, crypto.randomUUID());
+      if (version !== this._requestVersion || chartId !== this.chart?.id) return null;
       this.views.setItems([view, ...this.views.items.filter((item) => item.id !== view.id)]);
-      if (version !== this._requestVersion) return null;
       this.saved = view;
       this.preview = null;
       this.message = '当前视图已保存，可以在这里写笔记';
       return view;
     } catch (error) {
-      this.error = errorMessage(error);
+      if (version === this._requestVersion) this.error = errorMessage(error);
       return null;
     } finally {
       this._inFlight = false;
-      this.pending = false;
+      if (version === this._requestVersion) this.pending = false;
     }
   }
 
   viewLabel(view: ViewChartSnapshot): string {
     const query = view.query;
+    if (query.mode === 'decadal') {
+      const decade = view.result.decadal;
+      return decade ? `${decade.range[0]}–${decade.range[1]} 虚岁 · ${decade.fromYear}–${decade.toYear}` : `${query.startAge} 虚岁起大限`;
+    }
     if (query.mode === 'day') return query.date;
     if (query.mode === 'months') return `${query.startMonth} 起 ${query.count} 个月`;
     if (query.mode === 'decades') return '当前 / 下一大限';

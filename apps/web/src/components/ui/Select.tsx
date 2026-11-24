@@ -23,7 +23,7 @@ export function Select({ value, onValueChange, options, placeholder = '请选择
       <SelectPrimitive.Trigger asChild>
         <Button {...props} ref={trigger} className="ui-control ui-select-trigger" aria-required={required || undefined} aria-invalid={invalid || props['aria-invalid']} aria-describedby={[props['aria-describedby'], invalid ? errorId : ''].filter(Boolean).join(' ') || undefined}>
           <SelectPrimitive.Value placeholder={empty?.label || placeholder} />
-          <SelectPrimitive.Icon className="ui-select-icon">⌄</SelectPrimitive.Icon>
+          <SelectPrimitive.Icon className="ui-select-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></SelectPrimitive.Icon>
         </Button>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>

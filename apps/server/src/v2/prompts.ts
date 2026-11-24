@@ -72,6 +72,8 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
     if (boundView && needZiweiSource) {
         const q = boundView.query;
         const dateUsed = names.some(n => ['ziwei.current', 'ziwei.gender_age', 'ziwei.decade_current', 'ziwei.decades'].includes(n));
+        if (q.mode === 'decadal' && dateUsed)
+            diagnostics.push('自动引用冲突：所选保存视图是大限区间，不能代替基准日运限；请改用基础命盘取数');
         if ((q.mode === 'day' || q.mode === 'decades') && dateUsed && input.asOfDate && input.asOfDate !== (q.mode === 'day' ? q.date : q.asOfDate))
             diagnostics.push('自动引用冲突：已保存视图的基准日与本次参数不同，请清除视图绑定后重新取数');
         if (!needZiwei && needTitle)

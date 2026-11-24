@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { astro } from 'iztro';
 import { solar2lunar, lunar2solar, getHeavenlyStemAndEarthlyBranchBySolarDate } from 'lunar-lite';
 import { ZIWEI_RULES, ziweiInputSchema, ziweiQuerySchema, type ZiweiInput, type ZiweiNatalResult, type ZiweiQuery, type ZiweiViewResult, type ZiweiDayResult, type ZiweiSegment, type HoroscopeLayer, type ZiweiDecade, type DateRange, type EngineMeta, type SystemCapability, type PalaceView, type StarView } from '@dongxuan/dto';
+import type { ZiweiFlowOptions, ZiweiMonthPeriod, ZiweiSelectedDecade } from '@dongxuan/dto';
 export { renderLegacy } from './legacy.js';
 
 const require = createRequire(import.meta.url);
@@ -101,9 +102,53 @@ function decadeResults(c:ReturnType<typeof context>,read:ReturnType<typeof dayRe
 }
 export function createCurrentDecade(input:ZiweiInput,asOfDate:string):ZiweiDecade {try{const c=context(input);return decadeResults(c,dayReader(c),asOfDate,false).current;}catch(err){if(err instanceof ZiweiError)throw err;throw new ZiweiError(err instanceof Error?err.message:'当前大限查询失败');}}
 export function createNatal(input:ZiweiInput):ZiweiNatalResult {try{return context(input).natal;}catch(err){if(err instanceof ZiweiError)throw err;throw new ZiweiError(err instanceof Error?err.message:'排盘失败，请核对出生资料');}}
+
+/** Selection metadata comes from the same pinned astrolabe as the actual views. */
+export function createFlowOptions(input: ZiweiInput, request: { date?: string; year?: number } = {}, asOfDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())): ZiweiFlowOptions {
+ const c = context(input), birthYear = c.a.rawDates.lunarDate.lunarYear;
+ solarDate(asOfDate); supported(asOfDate, '当前日期');
+ const currentYear = solar2lunar(asOfDate).lunarYear, currentAge = currentYear - birthYear + 1;
+ const decades = c.a.decadalList().map(item => ({ startAge: item.ageRange[0], range: [...item.ageRange] as [number, number], fromYear: item.yearRange[0], toYear: item.yearRange[1], palaceName: item.palaceName, heavenlyStem: item.heavenlyStem, earthlyBranch: item.earthlyBranch }));
+ assert(decades.length === 12, '引擎大限列表不完整');
+ const current = decades.find(item => currentAge >= item.range[0] && currentAge <= item.range[1]);
+ const defaultStartAge = current?.startAge ?? (currentAge < 1 ? decades[0].startAge : currentAge < decades[0].startAge ? null : decades.at(-1)!.startAge);
+ // Day/month/year overlays also require the engine's small-limit age, which ends at 120.
+ const firstYear = birthYear, lastYear = Math.min(2099, birthYear + 119);
+ const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index);
+ const minDate = [c.birthSolarDate, yearDates(firstYear).from].sort().at(-1)!, maxDate = [MAX_DATE, yearDates(lastYear).to].sort()[0];
+ const requestedDate = request.date ?? asOfDate;
+ solarDate(requestedDate); supported(requestedDate, '定位日期');
+ let date = requestedDate < minDate ? minDate : requestedDate > maxDate ? maxDate : requestedDate;
+ const year = request.year ?? Math.max(firstYear, Math.min(lastYear, solar2lunar(date).lunarYear));
+ assert(years.includes(year), '所选流年超出引擎可计算的范围');
+ const range = yearDates(year), yearDate = range.from < minDate ? minDate : range.from;
+ if (date < range.from || date > range.to) date = yearDate;
+ const names = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
+ const toSolar = (month: number, day: number, leap: boolean) => {
+  const s = lunar2solar(`${year}-${month}-${day}`, leap);
+  return solarDate(`${s.solarYear}-${s.solarMonth}-${s.solarDay}`);
+ };
+ const months: ZiweiMonthPeriod[] = c.a.monthlyList(year, true).flatMap(item => {
+  const rawFrom = toSolar(item.month, item.dayRange[0], item.isLeapMonth), rawTo = toSolar(item.month, item.dayRange[1], item.isLeapMonth);
+  const from = rawFrom < minDate ? minDate : rawFrom, to = rawTo > maxDate ? maxDate : rawTo;
+  if (from > to) return [];
+  const part = item.part === 'first' ? '上半月' : item.part === 'second' ? '下半月' : '';
+  return [{ id: `${year}-${item.month}-${item.isLeapMonth ? 'leap' : 'normal'}-${item.part}`, month: item.month, isLeapMonth: item.isLeapMonth, part: item.part, label: `${item.isLeapMonth ? '闰' : ''}${names[item.month - 1]}${part ? ' · ' + part : ''} · ${item.heavenlyStem}${item.earthlyBranch}`, from, to }];
+ });
+ return { asOfDate, currentAge, currentStartAge: current?.startAge ?? null, defaultStartAge, decades, date, year, yearDate, years, months, minDate, maxDate };
+}
+
+function selectedDecade(c: ReturnType<typeof context>, startAge: number): ZiweiSelectedDecade {
+ const item = c.a.decadalList().find(period => period.ageRange[0] === startAge);
+ assert(item, '所选年龄范围不属于引擎原生大限');
+ const b = layer(item, '大限'); b.range = [...item.ageRange];
+ return { name: '大限', range: [...item.ageRange], fromYear: item.yearRange[0], toYear: item.yearRange[1], layer: b, text: [`大限 ${item.ageRange[0]}–${item.ageRange[1]} 虚岁`, `农历年 ${item.yearRange[0]}–${item.yearRange[1]}`, scope(c.natal, b, '大限'), `大限四化  ${mutagenLine(c.natal.palaces, b.mutagen)}`, '', overlay(c.natal, [['大限', b]])].join('\n') };
+}
+
 export function createView(input:ZiweiInput,rawQuery:ZiweiQuery):ZiweiViewResult {
  try{
  const parsed=ziweiQuerySchema.safeParse(rawQuery);assert(parsed.success,'运限查询参数不正确');const query=parsed.data,c=context(input),read=dayReader(c);const result:ZiweiViewResult={query,natal:c.natal,segments:[],views:{},text:'',engineMeta:{...ENGINE_META}};
+ if(query.mode==='decadal'){result.decadal=selectedDecade(c,query.startAge);result.text=result.decadal.text;return result;}
  if(query.mode==='day'){result.day=read(query.date,query.includeDaily||query.level==='daily');result.day.text=dayText(c.natal,result.day);result.text=result.day.text;return result;}
  if(query.mode==='decades'){const pair=decadeResults(c,read,query.asOfDate);assert(pair.next,'下一大限资料不完整');result.decades={current:pair.current,next:pair.next};result.text=result.decades.current.text+'\n\n'+result.decades.next.text;return result;}
  const ranges=query.mode==='months'?[{...monthDates(query.startMonth,query.count),label:'流月'}]:[...new Set(query.years)].sort((a,b)=>a-b).map(year=>({...yearDates(year),label:`流年 ${year}（春节为界）`}));

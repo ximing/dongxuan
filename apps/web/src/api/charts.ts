@@ -1,4 +1,4 @@
-import type { ChartRecord, ChartRecordSummary, ViewChartSnapshot, ViewPreview, ZiweiQuery } from '@dongxuan/dto';
+import type { ChartRecord, ChartRecordSummary, ViewChartSnapshot, ViewPreview, ZiweiQuery, ZiweiFlowOptions } from '@dongxuan/dto';
 import { api, apiAll } from './client';
 
 export function listAllCharts(): Promise<ChartRecordSummary[]> {
@@ -7,6 +7,12 @@ export function listAllCharts(): Promise<ChartRecordSummary[]> {
 
 export function getChart(id: string): Promise<ChartRecord> {
   return api<ChartRecord>(`/api/v2/charts/${id}`);
+}
+
+export function getChartFlowOptions(id: string, date: string, year?: number): Promise<ZiweiFlowOptions> {
+  const params = new URLSearchParams({ date });
+  if (year !== undefined) params.set('year', String(year));
+  return api<ZiweiFlowOptions>(`/api/v2/charts/${id}/flow-options?${params}`);
 }
 
 export function createChart(body: object, idempotencyKey: string): Promise<ChartRecord> {

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { ZIWEI_RULES, type ZiweiInput, type ChartRecord, type ChartRecordSummary, type ChartSnapshot, type BaseChartSnapshot, type ViewChartSnapshot, type ViewPreview, type ZiweiQuery,type ListPage } from '@dongxuan/dto';
-import { createNatal, createView, ENGINE_META, renderLegacy } from '../domain/ziwei/index.js';
+import { createNatal, createView, createFlowOptions, ENGINE_META, renderLegacy } from '../domain/ziwei/index.js';
 import { getPool } from '../db/index.js';
 import { AppError } from '../errors.js';
 import { transaction, owned, iso, optionalIso, json, type Row } from './store.js';
@@ -65,6 +65,12 @@ export async function replaceChartInput(userId: string, chartId: string, input: 
     });
 }
 const pending = new Map<string, Pending>();
+export async function chartFlowOptions(userId: string, chartId: string, request: { date?: string; year?: number }) {
+    const chart = await readChart(userId, chartId), base = chart.baseSnapshot;
+    if (!base) throw AppError.of(409, 'INCOMPLETE', '旧盘尚未重建成功');
+    assertEngine(base);
+    return createFlowOptions(base.input, request);
+}
 export async function previewView(userId: string, chartId: string, query: ZiweiQuery): Promise<ViewPreview> { const chart = await readChart(userId, chartId), base = chart.baseSnapshot; if (!base)
     throw AppError.of(409, 'INCOMPLETE', '旧盘尚未重建成功'); assertEngine(base); const result = createView(base.input, query), inputHash = hash(base.input), fingerprint = hash({ baseId: base.id, inputHash, query, result }); for (const [k, p] of pending)
     if (p.expires < Date.now())

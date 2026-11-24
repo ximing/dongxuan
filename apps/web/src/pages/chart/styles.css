@@ -219,3 +219,11 @@
   .chart-side .detail-list { grid-template-columns:1fr }
 }
 .calculation-status { font-size:11px;line-height:1.8;color:var(--accent);padding:10px 12px;margin:12px 0;background:var(--accent-soft);border-left:2px solid #9bd6b6;border-radius:3px }
+
+.flow-controls .decade-control .ui-select { min-width: 268px; max-width: 100%; }
+.flow-controls .month-control .ui-select { min-width: 172px; max-width: 100%; }
+@media(max-width:600px) {
+  .flow-controls label.decade-control { width:100%; align-items:flex-start; flex-direction:column; }
+  .flow-controls .decade-control .ui-select { width:100%; min-width:0; max-width:100%; }
+  .flow-controls .month-control .ui-select { min-width:0; width:170px; }
+}

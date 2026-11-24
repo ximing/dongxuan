@@ -20,14 +20,19 @@ export type ZiweiDayResult = { date: string; nominalAge: number; decadal: Horosc
 export type DateRange = { from: string; to: string; complete: boolean };
 export type ZiweiSegment = { id: string; viewId: string; from: string; to: string; lunarLabel: string; lunarRange: DateRange; monthlyRange: DateRange; overlayRange: DateRange; nominalAge: number; repeated: boolean };
 export type ZiweiDecade = { name: string; asOfDate: string; fromYear: number; toYear: number; range: [number, number] | null; layer: HoroscopeLayer; text: string };
+export type ZiweiDecadalPeriod = { startAge: number; range: [number, number]; fromYear: number; toYear: number; palaceName: string; heavenlyStem: string; earthlyBranch: string };
+export type ZiweiMonthPeriod = { id: string; label: string; month: number; isLeapMonth: boolean; part: 'normal' | 'first' | 'second'; from: string; to: string };
+export type ZiweiFlowOptions = { asOfDate: string; currentAge: number; currentStartAge: number | null; defaultStartAge: number | null; decades: ZiweiDecadalPeriod[]; date: string; year: number; yearDate: string; years: number[]; months: ZiweiMonthPeriod[]; minDate: string; maxDate: string };
+export type ZiweiSelectedDecade = Omit<ZiweiDecade, 'asOfDate' | 'range'> & { range: [number, number] };
 export const ziweiQuerySchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('decadal'), startAge: z.number().int().min(1).max(120) }),
   z.object({ mode: z.literal('day'), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), includeDaily: z.boolean().default(false), level: z.enum(['decadal','yearly','monthly','daily']).default('monthly') }),
   z.object({ mode: z.literal('months'), startMonth: z.string().regex(/^\d{4}-\d{2}$/), count: z.number().int().min(1).max(12) }),
   z.object({ mode: z.literal('decades'), asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
   z.object({ mode: z.literal('years'), years: z.array(z.number().int().min(1901).max(2099)).min(1).max(12) }),
 ]);
 export type ZiweiQuery = z.infer<typeof ziweiQuerySchema>;
-export type ZiweiViewResult = { query: ZiweiQuery; natal: ZiweiNatalResult; day?: ZiweiDayResult; decades?: { current: ZiweiDecade; next: ZiweiDecade }; segments: ZiweiSegment[]; views: Record<string, ZiweiDayResult>; text: string; engineMeta: EngineMeta };
+export type ZiweiViewResult = { query: ZiweiQuery; natal: ZiweiNatalResult; day?: ZiweiDayResult; decadal?: ZiweiSelectedDecade; decades?: { current: ZiweiDecade; next: ZiweiDecade }; segments: ZiweiSegment[]; views: Record<string, ZiweiDayResult>; text: string; engineMeta: EngineMeta };
 export type ChartSnapshot = { id: string; chartId: string; kind: 'base' | 'view'; baseSnapshotId: string | null; input: ZiweiInput; rules: ZiweiRules; engineMeta: EngineMeta; schemaVersion: number; query: ZiweiQuery | null; result: ZiweiNatalResult | ZiweiViewResult; text: string; provenance: string; createdAt: string };
 export type BaseChartSnapshot = ChartSnapshot & { kind: 'base'; result: ZiweiNatalResult };
 export type ViewChartSnapshot = ChartSnapshot & { kind: 'view'; result: ZiweiViewResult; query: ZiweiQuery };

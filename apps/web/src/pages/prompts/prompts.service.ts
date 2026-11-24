@@ -105,6 +105,11 @@ export class PromptsService extends Service {
   get sourceLabel(): string {
     const query = this.sourceSnapshot?.query;
     if (!query) return '本命基础快照';
+    if (query.mode === 'decadal') {
+      const result = this.sourceSnapshot?.result;
+      const period = result && 'decadal' in result ? result.decadal : undefined;
+      return period ? `${period.range[0]}–${period.range[1]} 虚岁 · ${period.fromYear}–${period.toYear} 大限` : `${query.startAge} 虚岁起大限`;
+    }
     if (query.mode === 'day') return query.date + (query.includeDaily ? ' · 含流日' : ' · 不含流日');
     if (query.mode === 'months') return query.startMonth + ' 起连续 ' + query.count + ' 个月';
     if (query.mode === 'years') return query.years.join('、') + ' 流年';

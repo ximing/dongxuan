@@ -19,7 +19,8 @@
 .ui-control-error { color: var(--red); font-size: 11px; line-height: 1.5; margin-top: 4px; }
 .ui-select-trigger, .ui-picker-trigger { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; cursor: pointer; }
 .ui-select-trigger>span:first-child, .ui-picker-trigger>span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ui-select-icon { color: var(--muted); font-size: 15px; flex: none; }
+.ui-select-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; line-height: 0; color: var(--muted); flex: none; }
+.ui-select-icon svg { display: block; width: 16px; height: 16px; }
 .ui-picker-trigger svg { width: 15px; height: 15px; color: var(--muted); }
 .ui-validation.ui-input {
   position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important;

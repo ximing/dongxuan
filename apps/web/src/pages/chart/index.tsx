@@ -5,7 +5,7 @@ import { BirthFields } from '@/components/birth-fields';
 import { CopyButton, ErrorBanner } from '@/components/chrome';
 import { Notes } from '@/components/notes';
 import { Pagination } from '@/components/pagination';
-import { Button, ButtonLink, Input, MonthPicker, Select, Textarea } from '@/components/ui';
+import { Button, ButtonLink, DatePicker, Input, MonthPicker, Select, Textarea } from '@/components/ui';
 import { Board } from './board';
 import { ChartService, type ChartLevel } from './chart.service';
 
@@ -33,7 +33,7 @@ const ChartContent = observer(function ChartContent() {
   const chart = service.chart;
   const base = service.base;
   const result = service.viewResult;
-  const activeDay = service.activeDay;
+  const options = service.flowOptions;
 
   useEffect(() => {
     if (!id) return;
@@ -56,9 +56,13 @@ const ChartContent = observer(function ChartContent() {
     return service.bindMenu(menuRef.current);
   }, [service, service.menu]);
 
+  function clearSnapshot() {
+    if (params.has('snapshot')) setParams({});
+  }
+
   function invalidate() {
     service.invalidate();
-    if (params.has('snapshot')) setParams({});
+    clearSnapshot();
   }
 
   async function saveCurrent() {
@@ -75,10 +79,6 @@ const ChartContent = observer(function ChartContent() {
       </main>
     );
   }
-
-  const years = Array.from({ length: 199 }, (_, index) => 1901 + index);
-  const months = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
-  const days = Array.from({ length: new Date(Number(service.date.slice(0, 4)), Number(service.date.slice(5, 7)), 0).getDate() }, (_, index) => String(index + 1).padStart(2, '0'));
 
   return (
     <main aria-busy={service.pending}>
@@ -140,33 +140,42 @@ const ChartContent = observer(function ChartContent() {
           <div className="chart-tools">
             <div className="chart-layer-tabs">
               {LEVELS.map(([value, label]) => (
-                <Button key={value} className={service.level === value ? 'active' : ''} onClick={() => { service.setLevel(value); invalidate(); }}>{label}</Button>
+                <Button key={value} className={service.level === value ? 'active' : ''} disabled={service.savingView} onClick={() => { clearSnapshot(); service.setLevel(value); }}>{label}</Button>
               ))}
             </div>
-            {service.level !== 'natal' ? (
-              <div className="layer-controls">
-                <label>年
-                  <Select aria-label="定位年份" value={service.date.slice(0, 4)} onValueChange={(value) => { service.setDatePart(0, value); invalidate(); }} options={years.map((year) => ({ value: year, label: year }))} />
-                </label>
-                {service.level !== 'decadal' ? (
+            {service.level !== 'natal' && options ? (
+              <div className="layer-controls flow-controls">
+                {service.level === 'decadal' ? (
+                  <label className="decade-control">大限区间
+                    <Select aria-label="大限区间" disabled={service.savingView} value={service.selectedStartAge == null ? 'childhood' : service.selectedStartAge} onValueChange={(value) => { clearSnapshot(); void service.selectDecade(value); }} options={[
+                      ...(service.childhoodDate || (options.currentAge >= 1 && options.currentAge < options.decades[0].startAge) ? [{ value: 'childhood', label: service.childhoodDate ? `童限 · ${service.childhoodDate}` : `当前童限 · ${options.currentAge} 虚岁` }] : []),
+                      ...options.decades.map(period => ({ value: period.startAge, label: `${period.range[0]}–${period.range[1]} 虚岁 · ${period.fromYear}–${period.toYear}${period.startAge === options.currentStartAge ? '（当前）' : ''}` })),
+                    ]} />
+                  </label>
+                ) : service.level === 'daily' ? (
+                  <label>阳历日期
+                    <DatePicker aria-label="流日日期" required disabled={service.savingView} value={service.date} min={options.minDate} max={options.maxDate} onValueChange={(value) => { clearSnapshot(); void service.selectDate(value); }} />
+                  </label>
+                ) : (
                   <>
-                    <label>月
-                      <Select aria-label="定位月份" value={service.date.slice(5, 7)} onValueChange={(value) => { service.setDatePart(1, value); invalidate(); }} options={months.map((month) => ({ value: month, label: month }))} />
+                    <label>农历年
+                      <Select aria-label="流年年份" disabled={service.savingView} value={options.year} onValueChange={(value) => { clearSnapshot(); void service.selectYear(value); }} options={options.years.map(year => ({ value: year, label: `${year} 年` }))} />
                     </label>
-                    <label>日
-                      <Select aria-label="定位日期" value={service.date.slice(8, 10)} onValueChange={(value) => { service.setDatePart(2, value); invalidate(); }} options={days.map((day) => ({ value: day, label: day }))} />
-                    </label>
+                    {service.level === 'monthly' ? (
+                      <label className="month-control">流月
+                        <Select aria-label="流月月份" disabled={service.periodsLoading || service.savingView} value={service.selectedMonth?.id ?? ''} onValueChange={(value) => { clearSnapshot(); void service.selectMonth(value); }} options={options.months.map(month => ({ value: month.id, label: month.label }))} />
+                      </label>
+                    ) : null}
                   </>
-                ) : null}
-                <Button variant="default" size="sm" disabled={service.pending} onClick={() => {
-                  const level = service.level;
-                  if (level === 'natal') return;
-                  void service.calculate({ mode: 'day', date: service.date, includeDaily: level === 'daily', level });
-                }}>{service.pending ? '计算中' : '更新盘面'}</Button>
+                )}
+                <Button variant="default" size="sm" disabled={service.pending || service.periodsLoading} onClick={() => void service.calculateCurrent()}>{service.pending ? '计算中…' : '更新盘面'}</Button>
               </div>
-            ) : <span className="rule-label">春节年界 · 晚子归次日</span>}
+            ) : <span className="rule-label">{service.periodsLoading && service.level !== 'natal' ? '正在读取可选范围…' : '春节年界 · 晚子归次日'}</span>}
           </div>
-          {service.level !== 'natal' && !result ? <p className="view-query-note">选择定位日期后，点击“更新盘面”读取运限。</p> : null}
+          {service.level === 'monthly' && service.selectedMonth ? <p className="view-query-note">对应阳历 {service.selectedMonth.from} 至 {service.selectedMonth.to} · 闰月按引擎规则区分上下半月</p> : null}
+          {service.level === 'yearly' && options ? <p className="view-query-note">以春节为流年分界，选择后自动更新盘面。</p> : null}
+          {service.level === 'decadal' && options ? <p className="view-query-note">{options.currentAge < 1 ? '当前日期在出生前，默认显示首个大限区间。' : options.currentStartAge == null && options.currentAge >= options.decades[0].startAge ? '当前年份已超出引擎大限范围，默认显示最后一个可计算区间。' : '默认选择当前年份所在大限；年龄为虚岁，年份以春节为界。'} 仅列出引擎原生的 {options.decades.length} 组范围。</p> : null}
+          {service.periodsError ? <p className="view-query-note" role="alert">{service.periodsError} <Button size="sm" onClick={() => void service.loadFlowOptions().then(() => service.calculateCurrent())}>重试</Button></p> : null}
           {service.tab === 'board' ? (
             <div className="chart-layout">
               <div><Board chart={base.result} layer={service.flowLayer} title={chart.title} /></div>
@@ -182,7 +191,7 @@ const ChartContent = observer(function ChartContent() {
                 </section>
                 {service.layers.length ? (
                   <section className="panel">
-                    <h2>{activeDay?.date} · {activeDay?.nominalAge} 虚岁</h2>
+                    <h2>{service.flowHeading}</h2>
                     {service.layers.map((layer) => (
                       <div className="flow-context" key={layer.name}>
                         <strong>{layer.name} {layer.heavenlyStem}{layer.earthlyBranch}</strong>
@@ -197,7 +206,7 @@ const ChartContent = observer(function ChartContent() {
             </div>
           ) : (
             <section className="text-sheet">
-              <div className="text-top"><div><h2>文字盘</h2><p>{result ? '定位日期完整叠盘' : '本命十二宫'}</p></div><CopyButton text={service.text} /></div>
+              <div className="text-top"><div><h2>文字盘</h2><p>{result?.decadal ? service.flowHeading : result ? '定位日期完整叠盘' : '本命十二宫'}</p></div><CopyButton text={service.text} /></div>
               <pre>{service.text}</pre>
             </section>
           )}
@@ -226,7 +235,7 @@ const ChartContent = observer(function ChartContent() {
                   </Button>
                 ))}
               </div>
-              <Board chart={base.result} layer={activeDay?.monthly} title={chart.title} />
+              <Board chart={base.result} layer={service.activeDay?.monthly} title={chart.title} />
               <section className="text-sheet section-space">
                 <div className="section-head"><h2>完整月份文字盘</h2><CopyButton text={service.text} /></div>
                 <pre>{service.text}</pre>
