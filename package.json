@@ -1,0 +1,20 @@
+{
+  "name": "dongxuan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "东玄 — 紫微斗数排盘。登录后保存命盘，同时看文字盘和宫位盘。",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @dongxuan/dto build && pnpm -r --parallel --filter @dongxuan/server --filter @dongxuan/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @dongxuan/dto build && pnpm --filter @dongxuan/server test",
+    "dev:local:db": "docker compose -f compose.local.yml up -d",
+    "dev:local:server": "node apps/server/scripts/local-env.mjs dev",
+    "test:local": "node apps/server/scripts/local-env.mjs test"
+  }
+}

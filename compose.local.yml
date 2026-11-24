@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dongxuan-dev-pg
+    environment:
+      POSTGRES_USER: dongxuan_dev
+      POSTGRES_PASSWORD: dongxuan_local_only
+      POSTGRES_DB: dongxuan_dev
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - dongxuan-local-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dongxuan_dev -d dongxuan_dev"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+volumes:
+  dongxuan-local-db:
