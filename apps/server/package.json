@@ -1,0 +1,38 @@
+{
+  "name": "@dongxuan/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@dongxuan/dto": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.0.1",
+    "@fastify/static": "^8.2.0",
+    "argon2": "^0.41.1",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.2.1",
+    "iztro": "2.6.5",
+    "jose": "^6.2.18",
+    "jsonwebtoken": "^9.0.2",
+    "lunar-lite": "0.2.9",
+    "pg": "^8.14.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
