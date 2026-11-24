@@ -29,6 +29,14 @@
 - 运限原生对照覆盖全部 12 组大限、春节换年、闰月分段、出生日期和日历端点、除夕晚子时。
 - 本地浏览器使用合成账号验收大限默认值、最后一组大限的实际渲染与保存，以及桌面和手机布局；切换流年、流月、流日后分别显示一个下拉框、两个下拉框、一个日历，均无错误。
 
+## 线上发布
+
+- 源码提交：`bccd92226c9576bb0fd31adfd52e6335a3a1c77f`。
+- [GitHub Actions 发布](https://github.com/ximing/dongxuan/actions/runs/45380839268)的检查、镜像构建、部署三个任务全部成功。
+- 镜像：`ghcr.io/ximing/dongxuan@sha256:6f10412ac6b12023a2158ee06a84bb956dc9283be1f66a9de9abf9c589c21bda`，容器健康状态为 `healthy`。
+- HTTPS `/health` 正常；新增选项接口未登录返回 401；一键登录状态仍为开启。
+- 已核对入口实际提供的新 JS / CSS 包含四类选择控件及居中 SVG 箭头，应用近期日志无错误级别记录或 5xx。
+
 ![桌面大限选择](validation/screenshots/flow-decadal-desktop.png)
 
 ![手机大限选择](validation/screenshots/flow-decadal-mobile.png)
