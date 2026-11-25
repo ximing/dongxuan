@@ -12,14 +12,24 @@ import { PromptsService } from './prompts.service';
 
 const PromptsContent = observer(function PromptsContent() {
   const service = useService(PromptsService);
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const area = useRef<PromptEditorHandle>(null);
   useEffect(() => { service.attachEditor(() => area.current); return () => service.attachEditor(null); }, [service]);
   const previousMobileView = useRef(service.mobileView);
   const snapshot = params.get('snapshot'), chart = params.get('chart'), meihua = params.get('meihuaDraft');
+  const template = params.get('template'), system = params.get('system');
 
+  useEffect(() => {
+    service.attachTemplateNavigation((id, replace) => {
+      if (params.get('template') === id) return;
+      const next = new URLSearchParams(params);
+      if (id) next.set('template', id); else next.delete('template');
+      setParams(next, { replace, preventScrollReset: true });
+    });
+    return () => service.attachTemplateNavigation(null);
+  }, [service, params, setParams]);
   useEffect(() => { void service.boot(); return () => service.dispose(); }, [service]);
-  useEffect(() => { service.selectInitial(params.get('system')); }, [service, service.templatesLoaded, service.templates, params]);
+  useEffect(() => { service.applyTemplateRoute(template, system); }, [service, service.templatesLoaded, template, system]);
   useEffect(() => {
     if (meihua && service.original) void service.loadDraft(meihua);
     return () => service.cancelDraft();

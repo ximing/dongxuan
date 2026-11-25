@@ -84,6 +84,82 @@ test('新建只创建内存草稿，保存失败保留原文，首次列表加�
   assert.match(s.editErrors[0], /保存失败/);
 });
 
+test('模板链接等待列表就绪后恢复指定模板，并保留命盘与日期绑定', () => {
+  const s = new PromptsService(), navigation: unknown[] = [];
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.chartId = chartId; s.snapshotId = 'saved-view'; s.asOf = '2026-11-24'; s.start = '2026-10'; s.count = 6;
+  s.applyTemplateRoute(secondId, null);
+  assert.equal(s.active, null); assert.deepEqual(navigation, []);
+  s.templates = structuredClone([base, second]); s.templatesLoaded = true;
+  s.applyTemplateRoute(secondId, null);
+  assert.equal(s.active, secondId); assert.deepEqual(navigation, []);
+  assert.deepEqual([s.chartId, s.snapshotId, s.asOf, s.start, s.count], [chartId, 'saved-view', '2026-11-24', '2026-10', 6]);
+});
+
+test('手动切换增加模板导航，前进后退恢复选择与编辑草稿且不重复写历史', () => {
+  const s = service(), navigation: unknown[] = [];
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.setMode('edit'); s.change({ title: '第一份的草稿' });
+  s.select(s.templates[1]); s.select(s.templates[1]);
+  assert.deepEqual(navigation, [[secondId, false]]);
+  s.applyTemplateRoute(firstId, null);
+  assert.equal(s.active, firstId); assert.equal(s.draft.title, '第一份的草稿');
+  s.applyTemplateRoute(secondId, null);
+  assert.equal(s.active, secondId);
+  assert.deepEqual(navigation, [[secondId, false]]);
+});
+
+test('默认模板与不存在的模板链接使用替换导航，失效草稿有明确提示', () => {
+  const s = service(), navigation: unknown[] = [];
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.applyTemplateRoute(null, null);
+  assert.deepEqual(navigation, [[firstId, true]]);
+  s.select(s.templates[1]);
+  s.applyTemplateRoute('missing-template', null);
+  assert.equal(s.active, firstId); assert.match(s.notice, /不存在或已删除/);
+  assert.deepEqual(navigation.at(-1), [firstId, true]);
+  s.applyTemplateRoute('draft:missing', null);
+  assert.match(s.notice, /未保存的草稿无法从链接恢复/);
+});
+
+test('新模板保存后用正式 ID 替换草稿链接，放弃新草稿后恢复有效链接', async () => {
+  const s = service(), navigation: unknown[] = [], savedId = '00000000-0000-4000-8000-000000000003';
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.openNew(); s.newTitle = '链接测试'; s.createDraft();
+  const draftId = s.active!;
+  assert.deepEqual(navigation.at(-1), [draftId, false]);
+  s.change({ bodyJson: importLegacyPrompt('固定文字') });
+  globalThis.fetch = async () => json({ ...base, ...s.draft, id: savedId });
+  await s.save();
+  assert.equal(s.active, savedId); assert.deepEqual(navigation.at(-1), [savedId, true]);
+  s.openNew(); s.newTitle = '临时草稿'; s.createDraft(); s.revert();
+  assert.equal(s.active, savedId); assert.deepEqual(navigation.at(-1), [savedId, true]);
+});
+
+test('切换被中文输入合成阻断时不写 URL，浏览器导航会恢复到实际模板', () => {
+  const s = service(), navigation: unknown[] = [];
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.setMode('edit');
+  s.attachEditor(() => ({ getDocument: () => s.draft.bodyJson, isComposing: () => true, rememberSelection() {}, focusSelection() {}, insertVariable() {} }));
+  s.select(s.templates[1]);
+  assert.equal(s.active, firstId); assert.deepEqual(navigation, []);
+  s.applyTemplateRoute(secondId, null);
+  assert.equal(s.active, firstId); assert.deepEqual(navigation, [[firstId, true]]);
+  assert.match(s.notice, /完成当前文字输入/);
+});
+
+test('新模板保存返回时若已切换模板，不修改当前模板链接', async () => {
+  const s = service(), navigation: unknown[] = [], pending = deferred<Response>();
+  s.attachTemplateNavigation((id, replace) => navigation.push([id, replace]));
+  s.openNew(); s.newTitle = '保存中的草稿'; s.createDraft(); s.change({ bodyJson: importLegacyPrompt('固定文字') });
+  const submitted = JSON.parse(JSON.stringify(s.draft));
+  globalThis.fetch = async () => pending.promise;
+  const saving = s.save(); s.select(s.templates[1]);
+  const before = [...navigation];
+  pending.resolve(json({ ...base, ...submitted, id: '00000000-0000-4000-8000-000000000003' })); await saving;
+  assert.equal(s.active, secondId); assert.deepEqual(navigation, before);
+});
+
 test('晚到的旧预览不能覆盖更晚请求生成的结果', async () => {
   const s = service(), first = deferred<Response>(), next = deferred<Response>();
   let requests = 0;

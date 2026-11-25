@@ -72,6 +72,7 @@ export class PromptsService extends Service {
   legacyError = '';
   // The closure captures a React ref; no editor instance enters reactive state.
   editorAccess: (() => PromptEditorHandle | null) | null = null;
+  templateNavigation: ((id: string | null, replace: boolean) => void) | null = null;
   _explicitRequirements: Record<string, string[]> = {};
   _requirementBaselines: Record<string, { names: string[]; requirements: string[] }> = {};
   _initialSelected = false;
@@ -177,13 +178,30 @@ export class PromptsService extends Service {
   selectInitial(system: string | null): void {
     if (this._initialSelected || !this.templatesLoaded) return;
     if (this.active) { this._initialSelected = true; return; }
-    const preferred = system === 'meihua'
-      ? this.templates.find(template => template.system === 'meihua' && template.title.includes('原始')) || this.templates.find(template => template.system === 'meihua')
-      : this.templates.find(template => template.system === 'ziwei') || this.templates[0];
-    if (preferred) this.select(preferred);
+    const preferred = this.defaultTemplate(system);
+    if (preferred) this.select(preferred, { replace: true });
     this._initialSelected = true;
   }
-  select(template: LibraryTemplate): void {
+  defaultTemplate(system: string | null): PromptTemplate | undefined {
+    return system === 'meihua'
+      ? this.templates.find(template => template.system === 'meihua' && template.title.includes('原始')) || this.templates.find(template => template.system === 'meihua')
+      : this.templates.find(template => template.system === 'ziwei') || this.templates[0];
+  }
+  attachTemplateNavigation(navigate: ((id: string | null, replace: boolean) => void) | null): void { this.templateNavigation = navigate; }
+  applyTemplateRoute(id: string | null, system: string | null): void {
+    if (!this.templatesLoaded) return;
+    const requested = id ? this.library.find(template => template.id === id) : undefined;
+    const pendingDraft = !id && !this._initialSelected ? this.library.find(template => template.id === this.active) : undefined;
+    const target = requested || pendingDraft || this.defaultTemplate(system);
+    if (target) this.select(target, { navigate: false });
+    this._initialSelected = true;
+    // Canonicalize missing links, or restore the URL if editor composition blocks navigation.
+    if (this.active !== id) this.templateNavigation?.(this.active, true);
+    if (id && !requested && this.active === target?.id) this.notice = id.startsWith('draft:')
+      ? '未保存的草稿无法从链接恢复，已打开默认模板。'
+      : '链接中的模板不存在或已删除，已打开默认模板。';
+  }
+  select(template: LibraryTemplate, options: { navigate?: boolean; replace?: boolean } = {}): void {
     if (template.id === this.active || !this.flushEditor()) return;
     if (!this._explicitRequirements[template.id] || !this.drafts[template.id]) {
       const names = new Set(readNames(template.bodyJson));
@@ -196,6 +214,7 @@ export class PromptsService extends Service {
     this.invalidate(); this.preview = null; this.previewStale = false;
     this.editErrors = []; this.notice = ''; this.error = ''; this.mobileView = 'fill';
     if (this.isNew) this.mode = 'edit';
+    if (options.navigate !== false) this.templateNavigation?.(this.active, options.replace ?? false);
   }
   setMode(mode: Mode): void {
     if ((mode === 'use' && !this.original) || !this.flushEditor()) return;
@@ -282,7 +301,8 @@ export class PromptsService extends Service {
     }
     else {
       this.active = null;
-      if (this.templates[0]) this.select(this.templates[0]); else this.draft = blank();
+      if (this.templates[0]) this.select(this.templates[0], { replace: true });
+      else { this.draft = blank(); this.templateNavigation?.(null, true); }
       this.mode = 'use';
     }
     this.notice = original ? '已撤销模板修改。' : '已放弃未保存的新模板。';
@@ -337,6 +357,7 @@ export class PromptsService extends Service {
       if (!unchanged && newerDraft) this.drafts = { ...this.drafts, [template.id]: newerDraft };
       if (this.active === id) {
         this.active = template.id; this.draft = copyTemplate(unchanged ? template : newerDraft);
+        if (id !== template.id) this.templateNavigation?.(template.id, true);
         this.mode = unchanged ? 'use' : 'edit'; this.invalidate(); this.mobileView = 'fill';
       }
       this.notice = '模板“' + template.title + '”已保存。';
@@ -356,7 +377,8 @@ export class PromptsService extends Service {
       this.clearDraft(template.id); this.favorites = this.favorites.filter(id => id !== template.id); this.persistFavorites();
       if (this.active === template.id) {
         this.active = null; this.invalidate(); this.preview = null; this.mode = 'use';
-        if (this.library[0]) this.select(this.library[0]);
+        if (this.library[0]) this.select(this.library[0], { replace: true });
+        else this.templateNavigation?.(null, true);
       }
       this.notice = '模板已删除。';
     } catch (error) { this.error = errorMessage(error); }
@@ -496,6 +518,7 @@ export class PromptsService extends Service {
     if (!success && !generated) this.selectTextVersion += 1;
   }
   dispose(): void {
+    this.templateNavigation = null;
     this._bootVersion += 1; this._templatesVersion += 1; this._draftVersion += 1; this._sourceVersion += 1; this._requestVersion += 1; this._copyVersion += 1;
   }
   constructor() {
