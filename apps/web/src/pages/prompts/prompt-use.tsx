@@ -1,3 +1,4 @@
+import { CastingTimeFields } from '@/components/casting-time-fields';
 import { observer, useService } from '@rabjs/react';
 import { Button, DatePicker, Disclosure, Input, MonthPicker, Select, Textarea } from '@/components/ui';
 import { describeTemplate } from './prompt-model';
@@ -19,7 +20,7 @@ function FieldError({ id, error }: { id: string; error?: string }) {
 export const PromptUse = observer(function PromptUse() {
   const service = useService(PromptsService);
   const errors = [...Object.values(service.fieldErrors), ...service.diagnostics, ...(service.runError ? [service.runError] : [])];
-  const hasSources = service.needZiwei || service.needProfile || service.usesDate || service.usesMonths || service.usesYears;
+  const hasSources = service.needZiwei || service.needProfile || service.usesDate || service.usesMonths || service.usesYears || service.usesCastingTime;
   return <>
     <div className="prompt-mobile-tabs" aria-label="使用步骤">
       <Button className={service.mobileView === 'fill' ? 'active' : ''} aria-pressed={service.mobileView === 'fill'} onClick={() => service.setMobileView('fill')}>填写资料</Button>
@@ -33,6 +34,7 @@ export const PromptUse = observer(function PromptUse() {
         </div>
         {hasSources ? <section className="prompt-source-section" aria-label="关联资料">
           <div className="prompt-section-heading"><h3>关联资料</h3><span>{service.usedSources.length ? service.usedSources.length + ' 类资料自动带入' : '按模板显示'}</span></div>
+          {service.usesCastingTime ? <div className="prompt-range-field"><CastingTimeFields id="prompt-casting" date={service.castingDate} hour={service.castingHour} onDate={value => service.setCastingDate(value)} onHour={value => service.setCastingHour(value)} onNow={() => service.useCurrentCastingTime()} disabled={service.meihuaLoading} error={service.fieldErrors['prompt-casting-date'] || service.fieldErrors['prompt-casting-hour']} /></div> : null}
           {service.needZiwei || service.needProfile ? <>
             <label className="field" htmlFor="prompt-chart"><span>命盘</span>
               <Select id="prompt-chart" aria-invalid={Boolean(service.fieldErrors['prompt-chart'])} aria-describedby={service.fieldErrors['prompt-chart'] ? 'prompt-chart-error' : undefined} value={service.chartId} onValueChange={value => service.selectChart(value)} options={[
@@ -102,8 +104,8 @@ export const PromptUse = observer(function PromptUse() {
         {errors.length ? <div className="prompt-run-errors" id="prompt-run-errors" role="alert" tabIndex={-1}><strong>还有 {errors.length} 处需要处理</strong><ul>{errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div> : null}
         <div className="prompt-form-footer">
           <div className="prompt-run-actions">
-            <Button variant="default" disabled={service.generating || service.sourceLoading} onClick={() => void service.generate()}>查看预览</Button>
-            <Button type="submit" variant="primary" disabled={service.generating || service.copying || service.sourceLoading || service.deletingId === service.active}>{service.generating ? '正在检查资料…' : service.copying ? '正在复制…' : '生成并复制'}</Button>
+            <Button variant="default" disabled={service.generating || service.sourceLoading || service.meihuaLoading} onClick={() => void service.generate()}>查看预览</Button>
+            <Button type="submit" variant="primary" disabled={service.generating || service.copying || service.sourceLoading || service.meihuaLoading || service.deletingId === service.active}>{service.generating ? '正在检查资料…' : service.copying ? '正在复制…' : '生成并复制'}</Button>
           </div>
           <p role="status">{service.generating ? '正在获取并核对完整盘面，月份或多年资料可能需要数秒。' : service.previewStale ? '资料已变更，重新生成后即可复制。' : '自动检查所需资料，只复制文本。'}</p>
         </div>

@@ -1,14 +1,31 @@
-import { renderPromptDocument, type PromptPreviewInput, type PromptPreview, type PromptTemplateInput, type ZiweiQuery, type BaseChartSnapshot, type ViewChartSnapshot, type ZiweiViewResult } from '@dongxuan/dto';
+import { castingTimeSchema, formatCastingTime, importLegacyPrompt, renderPromptDocument, type PromptPreviewInput, type PromptPreview, type PromptTemplateInput, type ZiweiQuery, type BaseChartSnapshot, type ViewChartSnapshot, type ZiweiViewResult } from '@dongxuan/dto';
 import { createView, createCurrentDecade } from '../domain/ziwei/index.js';
 import { AppError } from '../errors.js';
 import { readChart, assertEngine, snapshotRecord } from './charts.js';
 import { templateRecord } from './records.js';
 import { owned, transaction, json } from './store.js';
-import { PROMPT_SEEDS } from './prompt-seeds.js';
+import { LEGACY_MEIHUA_REQUEST_BODY, PROMPT_SEEDS } from './prompt-seeds.js';
 import { templateChecks, runtimeValues, fingerprint } from './prompt-engine.js';
-export async function ensureSeeds(userId: string) { await transaction(async (db) => { await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId + 'prompt-seed']); const r = await db.query('SELECT 1 FROM prompt_seed_state WHERE user_id=$1', [userId]); if (r.rowCount)
-    return; for (const t of PROMPT_SEEDS)
-    await db.query('INSERT INTO prompt_templates(user_id,system,title,body,inputs_schema,data_requirements,missing_policy,seed_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,seed_key) DO NOTHING', [userId, t.system, t.title, json(t.bodyJson), json(t.inputsSchema), json(t.dataRequirements), t.missingPolicy ?? null, t.seedKey]); await db.query('INSERT INTO prompt_seed_state(user_id,seed_version) VALUES($1,2) ON CONFLICT DO NOTHING', [userId]); }); }
+export async function ensureSeeds(userId: string) {
+    await transaction(async db => {
+        await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', [userId + 'prompt-seed']);
+        const state = (await db.query('SELECT seed_version FROM prompt_seed_state WHERE user_id=$1', [userId])).rows[0];
+        if (state) {
+            if (state.seed_version < 3) {
+                const raw = PROMPT_SEEDS.find(template => template.seedKey === 'meihua-request')!;
+                // Upgrade only the untouched original seed; keep every user edit intact.
+                await db.query(`UPDATE prompt_templates SET body=$2::jsonb,revision=revision+1,updated_at=now()
+                  WHERE user_id=$1 AND seed_key='meihua-request' AND revision=1 AND system='meihua' AND title=$6
+                    AND body=$3::jsonb AND inputs_schema=$4::jsonb AND data_requirements=$5::jsonb AND missing_policy IS NULL`,
+                    [userId, json(raw.bodyJson), json(importLegacyPrompt(LEGACY_MEIHUA_REQUEST_BODY)), json(raw.inputsSchema), json(raw.dataRequirements), raw.title]);
+                await db.query('UPDATE prompt_seed_state SET seed_version=3 WHERE user_id=$1', [userId]);
+            }
+            return;
+        }
+        for (const template of PROMPT_SEEDS) await db.query('INSERT INTO prompt_templates(user_id,system,title,body,inputs_schema,data_requirements,missing_policy,seed_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(user_id,seed_key) DO NOTHING', [userId, template.system, template.title, json(template.bodyJson), json(template.inputsSchema), json(template.dataRequirements), template.missingPolicy ?? null, template.seedKey]);
+        await db.query('INSERT INTO prompt_seed_state(user_id,seed_version) VALUES($1,3) ON CONFLICT DO NOTHING', [userId]);
+    });
+}
 export async function buildPrompt(userId: string, input: PromptPreviewInput): Promise<PromptPreview> {
     let t: PromptTemplateInput | undefined = input.draft, revision: number | null = null;
     if (input.templateId) {
@@ -63,9 +80,13 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
             sources.push('命盘：' + chart.title + '（称呼与性别）');
         }
     }
-    if (input.bindings.meihuaDraftId)
-        await owned('meihua_drafts', userId, input.bindings.meihuaDraftId);
-    if (names.some(n => n.startsWith('meihua.')))
+    const meihua = input.bindings.meihuaDraftId ? await owned('meihua_drafts', userId, input.bindings.meihuaDraftId) : undefined;
+    if (names.includes('meihua.time')) {
+        const time = castingTimeSchema.nullable().safeParse(input.castingTime === undefined ? meihua?.casting_time ?? null : input.castingTime);
+        if (!time.success) diagnostics.push('起卦时间不完整，请重新选择日期和时辰');
+        else { values['meihua.time'] = formatCastingTime(time.data); sources.push(time.data ? '起卦时间：' + formatCastingTime(time.data) : '起卦时间未记录'); }
+    }
+    if (names.some(n => n.startsWith('meihua.') && n !== 'meihua.time'))
         diagnostics.push('自动引用缺失：梅花起卦规则与计算引擎未接入，两个数字不能代替真实卦象');
     if (names.some(n => n.startsWith('bazi.')))
         diagnostics.push('自动引用缺失：独立八字命盘尚未接入，不能用紫微四柱替代');

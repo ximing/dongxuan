@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { promptDocumentIssues, promptDocumentToTemplateText, promptVariableNames, type PromptTemplateInput, type PromptVariable, type PromptField } from '@dongxuan/dto';
 const meihuaLabels = { upper: '上卦', lower: '下卦', method: '起卦方法', time: '起卦时间', primary: '本卦', mutual: '互卦', changed: '变卦', moving_line: '动爻', body_use: '体用' };
 const definitions = [['chart.title', '盘面名称', 'chart'], ['question', '本次问题', 'input'], ['profile.name', '命盘称呼', 'profile'], ['profile.gender', '命盘上的性别', 'profile'], ['bazi.chart', '完整八字命盘', 'bazi'], ['ziwei.birth', '出生资料', 'ziwei'], ['ziwei.natal', '本命文字盘', 'ziwei'], ['ziwei.current', '指定日完整运限', 'ziwei'], ['ziwei.gender_age', '性别与基准日虚岁', 'ziwei'], ['ziwei.decade_current', '当前大限', 'ziwei'], ['ziwei.decades', '当前与下一大限', 'ziwei'], ['ziwei.years', '多个流年', 'ziwei'], ['years.label', '目标流年列表', 'ziwei'], ['range.label', '阳历月份范围', 'ziwei'], ['ziwei.months', '连续流月资料', 'ziwei'], ...Object.entries(meihuaLabels).map(([key, label]) => ['meihua.' + key, label, 'meihua'])];
-export const VARIABLES: PromptVariable[] = definitions.map(([name, label, source]) => ({ name, label, source, status: source === 'bazi' || source === 'meihua' ? 'planned' : 'available' }));
+export const VARIABLES: PromptVariable[] = definitions.map(([name, label, source]) => ({ name, label, source, status: source === 'bazi' || (source === 'meihua' && name !== 'meihua.time') ? 'planned' : 'available' }));
 export function templateChecks(t: PromptTemplateInput): {
     names: string[];
     issues: string[];

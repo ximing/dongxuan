@@ -1,5 +1,6 @@
 // 用户原始框架的本地版本；不依赖设计稿或开发机路径。
 import { promptTemplateInputSchema, type PromptTemplateInput } from "@dongxuan/dto";
+export const LEGACY_MEIHUA_REQUEST_BODY = "以下仅为原始请求，东玄尚未计算卦象。\n需要断事：{{input.question}}\n两个数字：{{input.number_a}} 和 {{input.number_b}}\n请先与我确认两数起卦规则、动爻取法和是否加入时间因素，再决定是否起卦。不要将这些原始输入当成已完成的卦例。";
 const LEGACY_PROMPT_SEEDS: Array<Omit<PromptTemplateInput, 'bodyJson'> & { body: string;
     seedKey: string;
 }> = [
@@ -89,7 +90,7 @@ const LEGACY_PROMPT_SEEDS: Array<Omit<PromptTemplateInput, 'bodyJson'> & { body:
         "seedKey": "meihua-request",
         "title": "梅花原始起卦请求",
         "system": "meihua",
-        "body": "以下仅为原始请求，东玄尚未计算卦象。\n需要断事：{{input.question}}\n两个数字：{{input.number_a}} 和 {{input.number_b}}\n请先与我确认两数起卦规则、动爻取法和是否加入时间因素，再决定是否起卦。不要将这些原始输入当成已完成的卦例。",
+        "body": LEGACY_MEIHUA_REQUEST_BODY.replace('需要断事：', '起卦时间：{{meihua.time}}\n需要断事：'),
         "inputsSchema": [
             {
                 "key": "question",

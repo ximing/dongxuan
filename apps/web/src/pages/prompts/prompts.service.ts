@@ -1,4 +1,4 @@
-import { emptyPromptDocument, importLegacyPrompt, normalizePromptDocument, promptDocumentsEqual, removePromptVariable } from '@dongxuan/dto';
+import { castingDateSchema, castingTimeFromFields, currentCastingTime, emptyPromptDocument, importLegacyPrompt, normalizePromptDocument, promptDocumentsEqual, removePromptVariable } from '@dongxuan/dto';
 import type { PromptEditorHandle } from '@/components/ui/prompt-editor-handle';
 import { Service } from '@rabjs/react';
 import type { ChartRecordSummary, ChartSnapshot, MeihuaDraft, PromptField, PromptPreview, PromptTemplate, PromptTemplateInput, PromptVariable } from '@dongxuan/dto';
@@ -39,10 +39,13 @@ export class PromptsService extends Service {
   sourceError = '';
   sourceNotice = '';
   meihua: MeihuaDraft | null = null;
+  meihuaLoading = false;
   asOf = today();
   start = monthNow();
   count = 3;
   years = String(new Date().getFullYear());
+  castingDate = '';
+  castingHour = '';
   values: Record<string, string> = {};
   question = '';
   preview: PromptPreview | null = null;
@@ -96,9 +99,14 @@ export class PromptsService extends Service {
   get manualFields(): PromptField[] { return this.usage.inputsSchema.filter(field => this.uses('input.' + field.key)); }
   get needZiwei(): boolean { return this.names.some(name => name.startsWith('ziwei.') || name === 'range.label' || name === 'years.label') || (this.usage.system === 'ziwei' && this.uses('chart.title')); }
   get needProfile(): boolean { return this.names.some(name => name.startsWith('profile.')); }
-  get needMeihua(): boolean { return this.names.some(name => name.startsWith('meihua.')) || (this.usage.system === 'meihua' && this.uses('chart.title')); }
+  get needMeihua(): boolean { return this.names.some(name => name.startsWith('meihua.') && name !== 'meihua.time') || (this.usage.system === 'meihua' && this.uses('chart.title')); }
   get usesMonths(): boolean { return this.uses('ziwei.months') || this.uses('range.label'); }
   get usesYears(): boolean { return this.uses('ziwei.years') || this.uses('years.label'); }
+  get usesCastingTime(): boolean { return this.uses('meihua.time'); }
+  get castingTime() { return castingTimeFromFields(this.castingDate, this.castingHour); }
+  setCastingDate(value: string): void { this.castingDate = value; this._contextVersion += 1; this.invalidate(); }
+  setCastingHour(value: string): void { this.castingHour = value; this._contextVersion += 1; this.invalidate(); }
+  useCurrentCastingTime(): void { const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex); this._contextVersion += 1; this.invalidate(); }
   get usesDate(): boolean { return this.names.some(name => ['ziwei.gender_age', 'ziwei.current', 'ziwei.decade_current', 'ziwei.decades'].includes(name)); }
   get rangeLabel(): string { return monthRange(this.start, this.count); }
   get usedSources(): PromptVariable[] { return this.catalog.filter(variable => this.names.includes(variable.name) && variable.source !== 'input'); }
@@ -402,19 +410,23 @@ export class PromptsService extends Service {
   applyMeihua(): void {
     if (!this.meihua) return;
     this.values = { question: this.meihua.question, number_a: String(this.meihua.numberA), number_b: String(this.meihua.numberB) }; this.question = this.meihua.question;
+    this.castingDate = this.meihua.castingTime?.date || ''; this.castingHour = this.meihua.castingTime ? String(this.meihua.castingTime.timeIndex) : '';
   }
   async loadDraft(id: string): Promise<void> {
-    if (!id || this._contextId === id) return;
+    if (!id || (this._contextId === id && this.meihua?.id === id)) return;
     const version = ++this._draftVersion, context = this._contextVersion;
+    this.meihuaLoading = true; this.meihua = null; this.values = {}; this.question = ''; this.error = '';
+    this.castingDate = ''; this.castingHour = ''; this.invalidate();
     try {
       const draft = await getMeihuaDraft(id);
       if (version !== this._draftVersion || context !== this._contextVersion) return;
-      this.meihua = draft; if (!this.chartId && draft.chartId) this.chartId = draft.chartId;
+      this.meihua = draft; this.castingDate = draft.castingTime?.date || ''; this.castingHour = draft.castingTime ? String(draft.castingTime.timeIndex) : ''; if (!this.chartId && draft.chartId) this.chartId = draft.chartId;
       if (this.usage.system === 'meihua') this.applyMeihua();
       this._contextId = id; this.invalidate();
     } catch (error) { if (version === this._draftVersion) this.error = errorMessage(error); }
+    finally { if (version === this._draftVersion) this.meihuaLoading = false; }
   }
-  cancelDraft(): void { this._draftVersion += 1; }
+  cancelDraft(): void { this._draftVersion += 1; this.meihuaLoading = false; }
   async loadSnapshot(sourceId: string, chartFromUrl: string | null): Promise<void> {
     const version = ++this._sourceVersion;
     this.sourceLoading = true; this.sourceError = ''; this.invalidate();
@@ -422,7 +434,7 @@ export class PromptsService extends Service {
       const source = await getPromptSnapshot(sourceId);
       if (version !== this._sourceVersion) return;
       if (chartFromUrl && source.chartId !== chartFromUrl) throw new Error('保存视图不属于当前命盘，请核对来源。');
-      if (this.chartId && this.chartId !== source.chartId) { this.values = {}; this.question = ''; this.meihua = null; }
+      if (this.chartId && this.chartId !== source.chartId) { this.cancelDraft(); this.values = {}; this.question = ''; this.meihua = null; const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex); }
       this.sourceSnapshot = source; this.snapshotId = source.id; this.chartId = source.chartId;
       if (source.query?.mode === 'day') this.asOf = source.query.date;
       if (source.query?.mode === 'months') { this.start = source.query.startMonth; this.count = source.query.count; }
@@ -446,7 +458,9 @@ export class PromptsService extends Service {
   }
   selectChart(value: string): void {
     if (this.chartId === value) return;
+    this.cancelDraft();
     this.chartId = value; this._contextVersion += 1; this.meihua = null; this.values = {}; this.question = '';
+    const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex);
     this.clearSnapshotBinding(); this.notice = '已更换命盘，并清空上一个人的本次填写。';
   }
   setAsOf(value: string): void { this.asOf = value; this.contextChanged(); }
@@ -463,6 +477,7 @@ export class PromptsService extends Service {
     const years = parseYears(this.years);
     if (this.usesYears && (!years.length || years.length > 12 || years.some(year => !Number.isInteger(year) || year < 1901 || year > 2099))) errors['prompt-years'] = '请输入 1–12 个 1901–2099 年之间的流年。';
     if (this.usesDate && !validDate(this.asOf)) { errors['prompt-date'] = '请选择 1901–2099 年间的有效基准日。'; this.sourceDetailsOpen = true; }
+    if (this.usesCastingTime && (this.castingDate || this.castingHour) && !this.castingTime) errors[castingDateSchema.safeParse(this.castingDate).success ? 'prompt-casting-hour' : 'prompt-casting-date'] = '请完整选择有效的起卦日期和时辰，或清空两项。';
     if (this.uses('question') && !this.question.trim()) errors['prompt-question'] = '请填写本次问题。';
     for (const field of this.manualFields) {
       const value = (this.values[field.key] || '').trim(), id = 'prompt-input-' + field.key;
@@ -478,7 +493,7 @@ export class PromptsService extends Service {
     return true;
   }
   async generate(copy = false): Promise<void> {
-    if (this.generating || !this.original || this.deletingId === this.active) return;
+    if (this.generating || this.meihuaLoading || !this.original || this.deletingId === this.active) return;
     this.invalidate(); if (!this.validateRun()) return;
     const version = this._requestVersion, template = this.original;
     this.generating = true;
@@ -488,8 +503,9 @@ export class PromptsService extends Service {
         bindings: {
           ...((this.needZiwei || this.needProfile) && this.chartId ? { chartId: this.chartId } : {}),
           ...(this.needZiwei && this.snapshotId ? { snapshotId: this.snapshotId } : {}),
-          ...(this.meihua && template.system === 'meihua' ? { meihuaDraftId: this.meihua.id } : {}),
+          ...(this.meihua && (template.system === 'meihua' || this.usesCastingTime) ? { meihuaDraftId: this.meihua.id } : {}),
         },
+        ...(this.usesCastingTime ? { castingTime: this.castingTime } : {}),
         ...(this.usesDate ? { asOfDate: this.asOf } : {}),
         ...(this.usesMonths ? { months: { startMonth: this.start, count: this.count } } : {}),
         ...(this.usesYears ? { years: parseYears(this.years) } : {}),
@@ -523,7 +539,9 @@ export class PromptsService extends Service {
   }
   constructor() {
     super();
+    const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex);
     const params = new URLSearchParams(window.location.search);
+    if (params.get('meihuaDraft')) { this.castingDate = ''; this.castingHour = ''; this.meihuaLoading = true; }
     this.chartId = params.get('chart') || ''; this.snapshotId = params.get('snapshot') || ''; this.sourceLoading = Boolean(this.snapshotId);
     this.asOf = params.get('date') || today(); this.start = params.get('start') || monthNow(); this.count = Number(params.get('count')) || 3;
   }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { importLegacyPrompt, normalizePromptDocument, promptDocumentToTemplateText, promptVariableNames, type PromptPreview, type PromptTemplate } from '@dongxuan/dto';
 import { PromptsService } from '../src/pages/prompts/prompts.service';
-import { monthRange, validDate, writeClipboard } from '../src/pages/prompts/prompt-model';
+import { describeTemplate, monthRange, validDate, writeClipboard } from '../src/pages/prompts/prompt-model';
 
 const firstId = '00000000-0000-4000-8000-000000000001';
 const secondId = '00000000-0000-4000-8000-000000000002';
@@ -158,6 +158,46 @@ test('新模板保存返回时若已切换模板，不修改当前模板链接',
   const before = [...navigation];
   pending.resolve(json({ ...base, ...submitted, id: '00000000-0000-4000-8000-000000000003' })); await saving;
   assert.equal(s.active, secondId); assert.deepEqual(navigation, before);
+});
+
+test('起卦时间独立于完整卦象，可在客户端选择时辰并发送结构化时间', async () => {
+  const s = service();
+  const timed = { ...second, bodyJson: importLegacyPrompt('起卦：{{meihua.time}}'), inputsSchema: [], dataRequirements: [], system: 'meihua' as const };
+  s.templates = [timed]; s.select(timed);
+  assert.equal(s.needMeihua, false); assert.equal(s.usesCastingTime, true);
+  assert.match(describeTemplate(timed), /起卦时辰/);
+  assert.match(describeTemplate({ ...timed, bodyJson: importLegacyPrompt('{{meihua.time}}\n{{meihua.primary}}') }), /尚未接入/);
+  s.setCastingDate('2026-11-25'); s.setCastingHour('12');
+  const requests: any[] = [];
+  globalThis.fetch = async (_url, init) => { requests.push(JSON.parse(String(init?.body))); return json(response('起卦时间正文')); };
+  await s.generate();
+  assert.deepEqual(requests[0].castingTime, { date: '2026-11-25', timeIndex: 12, timeZone: 'Asia/Shanghai' });
+  s.snapshotId = 'independent-ziwei-snapshot';
+  s.setCastingHour('');
+  assert.equal(s.snapshotId, 'independent-ziwei-snapshot'); assert.equal(s.canCopy, false);
+  await s.generate();
+  assert.equal(requests.length, 1); assert.ok(s.fieldErrors['prompt-casting-hour']);
+  s.setCastingDate(''); await s.generate();
+  assert.equal(requests[1].castingTime, null);
+});
+
+test('关联草稿带入历史起卦时间，旧草稿不推断时间，手动修改后丢弃晚到的草稿', async () => {
+  const s = service(), pending = deferred<Response>();
+  const draft = { id: 'timed-draft', question: '测试', numberA: 1, numberB: 2, status: 'raw', revision: 1, createdAt: '', updatedAt: '', castingTime: { date: '2020-01-02', timeIndex: 0, timeZone: 'Asia/Shanghai' } };
+  globalThis.fetch = async () => json(draft);
+  await s.loadDraft(draft.id);
+  assert.equal(s.castingDate, '2020-01-02'); assert.equal(s.castingHour, '0');
+  globalThis.fetch = async () => json({ ...draft, id: 'legacy-draft', castingTime: null });
+  await s.loadDraft('legacy-draft');
+  assert.equal(s.castingTime, null);
+  globalThis.fetch = async () => pending.promise;
+  const loading = s.loadDraft('late-draft');
+  assert.equal(s.meihuaLoading, true); assert.equal(s.castingTime, null);
+  await s.generate(); // A pending bound draft must never generate with the current clock as a fallback.
+  s.setCastingDate('2026-11-25'); s.setCastingHour('8');
+  pending.resolve(json({ ...draft, id: 'late-draft' })); await loading;
+  assert.equal(s.castingDate, '2026-11-25'); assert.equal(s.castingHour, '8');
+  assert.equal(s.meihuaLoading, false);
 });
 
 test('晚到的旧预览不能覆盖更晚请求生成的结果', async () => {

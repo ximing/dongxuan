@@ -89,7 +89,7 @@ export const promptTemplates = pgTable('prompt_templates', {
 });
 export const meihuaDrafts = pgTable('meihua_drafts', {
   id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), question: text('question').notNull(),
-  numberA: bigint('number_a', {mode:'number'}).notNull(), numberB: bigint('number_b', {mode:'number'}).notNull(), chartId: uuid('chart_id'),
+  numberA: bigint('number_a', {mode:'number'}).notNull(), numberB: bigint('number_b', {mode:'number'}).notNull(), chartId: uuid('chart_id'), castingTime: jsonb('casting_time'),
   status: varchar('status', {length:8}).notNull().default('raw'), revision: integer('revision').notNull().default(1),
   createdAt: timestamp('created_at', {withTimezone: true, mode: 'date'}).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', {withTimezone: true, mode: 'date'}).notNull().defaultNow(),

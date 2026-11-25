@@ -32,7 +32,8 @@ export function bodyRequirements(template: PromptTemplateInput, next: PromptDocu
 }
 export function describeTemplate(template: PromptTemplateInput): string {
   const names = templateNames(template);
-  if (names.some(name => name.startsWith('meihua.'))) return '需要完整卦象资料，当前尚未接入。';
+  if (names.some(name => name.startsWith('meihua.') && name !== 'meihua.time')) return '需要完整卦象资料，当前尚未接入。';
+  if (template.system === 'meihua' && names.includes('meihua.time')) return '带上问题、数字和起卦时辰，先确认起卦规则。';
   if (template.system === 'meihua') return '带上问题和数字，先确认起卦规则。';
   if (names.includes('ziwei.months')) return '选一段时间，安排一件具体的事。';
   if (names.includes('ziwei.years')) return '先看长期趋势，再比较现实中的选择。';

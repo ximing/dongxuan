@@ -121,6 +121,11 @@ export async function migrateWithClient(c: PoolClient): Promise<void> { try {
         await migratePromptBodies(c);
         await c.query('INSERT INTO schema_migrations(version) VALUES(5)');
     }
+    const castingTime = await c.query('SELECT 1 FROM schema_migrations WHERE version=6');
+    if (!castingTime.rowCount) {
+        await c.query("ALTER TABLE meihua_drafts ADD COLUMN casting_time jsonb, ADD CONSTRAINT meihua_casting_time_object CHECK (casting_time IS NULL OR jsonb_typeof(casting_time)='object')");
+        await c.query('INSERT INTO schema_migrations(version) VALUES(6)');
+    }
     await c.query('COMMIT');
 }
 catch (e) {

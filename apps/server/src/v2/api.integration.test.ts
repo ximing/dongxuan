@@ -6,6 +6,7 @@ import { getPool, closeDb } from '../db/index.js';
 import { backfillLegacy } from './charts.js';
 import { transaction } from './store.js';
 import { importLegacyPrompt } from '@dongxuan/dto';
+import { LEGACY_MEIHUA_REQUEST_BODY } from './prompt-seeds.js';
 const run = process.env.DONGXUAN_INTEGRATION === '1';
 describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
     let app: Awaited<ReturnType<typeof buildApp>>, cookie = '', otherCookie = '', userId = '', otherId = '', chart: any, note: any, view: any;
@@ -110,6 +111,54 @@ describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
         const literal = '资料来源：用户写入的正文。\n---\n模板：这也是正文。';
         const result = await req('POST', '/api/v2/prompt-previews', { draft: { title: '普通文字', system: 'meihua', body: literal, inputsSchema: [], dataRequirements: [] } });
         expect(result.body.text).toBe(literal);
+    });
+
+    it('persists casting date and hour, preserves omitted values on old-client PATCH and validates ownership', async () => {
+        const data = { question: '起卦时间验收', numberA: 12, numberB: 35, castingTime: { date: '2026-11-25', timeIndex: 12, timeZone: 'Asia/Shanghai' } };
+        const saved = await req('POST', '/api/v2/meihua-drafts', data);
+        expect(saved.status).toBe(201);
+        const url = '/api/v2/meihua-drafts/' + saved.body.id;
+        expect((await req('GET', url)).body.castingTime).toEqual(data.castingTime);
+        expect((await req('GET', url, undefined, otherCookie)).status).toBe(404);
+        expect((await req('PATCH', url, { ...data, revision: 1 }, otherCookie)).status).toBe(404);
+        const patched = await req('PATCH', url, { question: data.question, numberA: 1, numberB: 2, revision: 1 });
+        expect(patched.status).toBe(200); expect(patched.body.castingTime).toEqual(data.castingTime);
+        expect((await req('PATCH', url, { ...data, revision: 1 })).status).toBe(409);
+        const cleared = await req('PATCH', url, { ...data, castingTime: null, revision: 2 });
+        expect(cleared.body.castingTime).toBeNull();
+        for (const castingTime of [{ date: '2026-02-30', timeIndex: 8 }, { date: '2026-11-25' }, { date: '2026-11-25', timeIndex: 13 }, { ...data.castingTime, timeZone: 'UTC' }]) expect((await req('POST', '/api/v2/meihua-drafts', { ...data, castingTime })).status).toBe(400);
+        const legacy = await req('POST', '/api/v2/meihua-drafts', { question: '旧记录', numberA: 1, numberB: 2 });
+        expect(legacy.body.castingTime).toBeNull();
+    });
+    it('renders raw casting time without requiring a hexagram and keeps full-hexagram requests blocked', async () => {
+        const castingTime = { date: '2026-11-25', timeIndex: 12, timeZone: 'Asia/Shanghai' };
+        const saved = await req('POST', '/api/v2/meihua-drafts', { question: '时间', numberA: 1, numberB: 2, castingTime });
+        const input = { draft: { title: '起卦时间', system: 'meihua', body: '{{meihua.time}}', inputsSchema: [], dataRequirements: [] }, bindings: { meihuaDraftId: saved.body.id } };
+        const first = await req('POST', '/api/v2/prompt-previews', input);
+        expect(first.body.diagnostics).toEqual([]); expect(first.body.text).toBe('阳历 2026-11-25 晚子时（23:00–24:00，北京时间）');
+        const changed = await req('POST', '/api/v2/prompt-previews', { ...input, castingTime: { ...castingTime, date: '2026-11-26', timeIndex: 0 } });
+        expect(changed.body.text).toBe('阳历 2026-11-26 早子时（00:00–01:00，北京时间）');
+        expect((await req('POST', '/api/v2/prompt-previews', { ...input, castingTime: null })).body.text).toBe('未记录起卦时间');
+        expect((await req('POST', '/api/v2/prompt-previews', input, otherCookie)).status).toBe(404);
+        const full = await req('POST', '/api/v2/prompt-previews', { ...input, draft: { ...input.draft, body: '{{meihua.time}}\n{{meihua.primary}}' } });
+        expect(full.body.text).toBe(''); expect(full.body.diagnostics.join()).toContain('未接入');
+        const catalog = (await req('GET', '/api/v2/prompt-variables')).body;
+        expect(catalog.find((v: any) => v.name === 'meihua.time').status).toBe('available');
+        expect(catalog.find((v: any) => v.name === 'meihua.primary').status).toBe('planned');
+    });
+    it('upgrades only untouched raw-request seeds once and keeps user-edited templates intact', async () => {
+        const raw = (await req('GET', '/api/v2/prompt-templates')).body.find((t: any) => t.title === '梅花原始起卦请求');
+        await getPool().query('UPDATE prompt_templates SET body=$2::jsonb,revision=1 WHERE id=$1', [raw.id, JSON.stringify(importLegacyPrompt(LEGACY_MEIHUA_REQUEST_BODY))]);
+        await getPool().query('UPDATE prompt_seed_state SET seed_version=2 WHERE user_id=$1', [userId]);
+        const upgraded = (await req('GET', '/api/v2/prompt-templates')).body.find((t: any) => t.id === raw.id);
+        expect(upgraded.body).toContain('{{meihua.time}}'); expect(upgraded.revision).toBe(2);
+        expect((await req('GET', '/api/v2/prompt-templates')).body.find((t: any) => t.id === raw.id).revision).toBe(2);
+        const other = (await req('GET', '/api/v2/prompt-templates', undefined, otherCookie)).body.find((t: any) => t.title === '梅花原始起卦请求');
+        const custom = importLegacyPrompt('用户自定义正文');
+        await getPool().query('UPDATE prompt_templates SET body=$2::jsonb,revision=4 WHERE id=$1', [other.id, JSON.stringify(custom)]);
+        await getPool().query('UPDATE prompt_seed_state SET seed_version=2 WHERE user_id=$1', [otherId]);
+        const kept = (await req('GET', '/api/v2/prompt-templates', undefined, otherCookie)).body.find((t: any) => t.id === other.id);
+        expect(kept.bodyJson).toEqual(custom); expect(kept.revision).toBe(4);
     });
 
 });

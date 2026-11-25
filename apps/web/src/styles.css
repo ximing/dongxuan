@@ -142,3 +142,11 @@ body { background-color:var(--bg);background-image:radial-gradient(ellipse 760px
 @media(max-width:760px) {
   .page-heading .actions { justify-content:flex-end }
 }
+
+.casting-time-fields { min-width:0; }
+.casting-time-heading { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px; }
+.casting-time-heading small { font-size:10px;color:var(--muted);margin-left:5px; }
+.casting-time-row { display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,1.4fr);gap:10px; }
+.casting-time-row .field { min-width:0;margin:0; }
+.casting-time-row .ui-picker,.casting-time-row .ui-select { width:100%;min-width:0;max-width:100%; }
+@media(max-width:600px) { .casting-time-heading { align-items:flex-start; } .casting-time-heading small { display:block;margin-left:0; } .casting-time-row { grid-template-columns:1fr;gap:8px; } }

@@ -1,4 +1,5 @@
 import { Service } from '@rabjs/react';
+import { castingTimeFromFields, currentCastingTime } from '@dongxuan/dto';
 import type { ChartRecordSummary, MeihuaDraft } from '@dongxuan/dto';
 import { listAllCharts } from '@/api/charts';
 import { deleteMeihuaDraft, saveMeihuaDraft } from '@/api/meihua';
@@ -13,11 +14,19 @@ export class MeihuaService extends Service {
   numberA = '';
   numberB = '';
   chartId = '';
+  castingDate = '';
+  castingHour = '';
   active: MeihuaDraft | null = null;
   pending = false;
   error = '';
   message = '';
   _inFlight = false;
+
+  constructor() { super(); const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex); }
+  get castingTime() { return castingTimeFromFields(this.castingDate, this.castingHour); }
+  setCastingDate(value: string): void { this.castingDate = value; this.message = ''; }
+  setCastingHour(value: string): void { this.castingHour = value; this.message = ''; }
+  useCurrentCastingTime(): void { const time = currentCastingTime(); this.castingDate = time.date; this.castingHour = String(time.timeIndex); this.message = ''; }
 
   get dialog(): DialogService {
     return this.resolve(DialogService);
@@ -52,6 +61,7 @@ export class MeihuaService extends Service {
     this.numberA = '';
     this.numberB = '';
     this.active = null;
+    this.useCurrentCastingTime();
     this.message = '';
   }
 
@@ -61,11 +71,14 @@ export class MeihuaService extends Service {
     this.numberA = String(draft.numberA);
     this.numberB = String(draft.numberB);
     this.chartId = draft.chartId || '';
+    this.castingDate = draft.castingTime?.date || '';
+    this.castingHour = draft.castingTime ? String(draft.castingTime.timeIndex) : '';
     this.message = '';
   }
 
   async save(): Promise<MeihuaDraft | null> {
     if (this._inFlight) return null;
+    if ((this.castingDate || this.castingHour) && !this.castingTime) { this.error = '请完整选择有效的起卦日期和时辰，或清空两项。'; return null; }
     if (!this.question.trim() || this.numberA === '' || this.numberB === '' || !Number.isSafeInteger(Number(this.numberA)) || !Number.isSafeInteger(Number(this.numberB))) {
       this.error = '请填写问题和安全范围内的两个整数。';
       return null;
@@ -79,6 +92,7 @@ export class MeihuaService extends Service {
         numberA: Number(this.numberA),
         numberB: Number(this.numberB),
         chartId: this.chartId || null,
+        castingTime: this.castingTime,
         ...(this.active ? { revision: this.active.revision } : {}),
       });
       this.drafts.setItems([draft, ...this.drafts.items.filter((item) => item.id !== draft.id)]);

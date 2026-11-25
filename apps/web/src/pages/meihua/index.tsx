@@ -2,6 +2,8 @@ import { bindServices, observer, useService } from '@rabjs/react';
 import { useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ErrorBanner } from '@/components/chrome';
+import { CastingTimeFields } from '@/components/casting-time-fields';
+import { formatCastingTime } from '@dongxuan/dto';
 import { Pagination } from '@/components/pagination';
 import { Button, Disclosure, Input, Select, Textarea } from '@/components/ui';
 import { displayDate } from '@/lib/format';
@@ -32,6 +34,7 @@ const MeihuaContent = observer(function MeihuaContent() {
           <p className="field-note">记录一件事，按需关联一张命盘。</p>
           <div className="form-grid" style={{ marginTop: 20 }}>
             <label className="field wide">需要断事的问题<Textarea required maxLength={10000} value={service.question} onChange={(event) => service.setQuestion(event.target.value)} placeholder="具体说明想问的事情。" /></label>
+            <div className="field wide"><CastingTimeFields id="meihua-casting" date={service.castingDate} hour={service.castingHour} onDate={value => service.setCastingDate(value)} onHour={value => service.setCastingHour(value)} onNow={() => service.useCurrentCastingTime()} disabled={service.pending} /></div>
             <label className="field">第一个数字<Input type="number" step="1" required value={service.numberA} onChange={(event) => service.setNumberA(event.target.value)} /></label>
             <label className="field">第二个数字<Input type="number" step="1" required value={service.numberB} onChange={(event) => service.setNumberB(event.target.value)} /></label>
             <label className="field wide">关联命盘 · 选填
@@ -45,7 +48,7 @@ const MeihuaContent = observer(function MeihuaContent() {
             <Button type="submit" variant="default" disabled={service.pending}>{service.pending ? '保存中' : service.active ? '更新原始草稿' : '保存原始草稿'}</Button>
             <Button type="button" variant="primary" disabled={service.pending} onClick={() => { void service.save().then((draft) => { if (draft) navigate(`/prompts?system=meihua&meihuaDraft=${draft.id}`); }); }}>填写关联提示词</Button>
           </div>
-          <p className="field-note" style={{ marginTop: 12 }}>完整卦例模板需等待真实卦象；原始起卦请求模板可以先复制问题和数字。</p>
+          <p className="field-note" style={{ marginTop: 12 }}>原始起卦请求会带入问题、数字和起卦时间。完整卦例模板需等待真实卦象。</p>
         </form>
         <aside>
           <section className="panel">
@@ -58,7 +61,7 @@ const MeihuaContent = observer(function MeihuaContent() {
             {service.drafts.items.map((draft) => (
               <article className="meihua-draft" key={draft.id}>
                 <Button className="plain-button" style={{ textAlign: 'left' }} onClick={() => service.openDraft(draft)}>{draft.question}</Button>
-                <small>{draft.numberA} / {draft.numberB} · {displayDate(draft.createdAt)} · 未起卦</small>
+                <small>{draft.numberA} / {draft.numberB} · {formatCastingTime(draft.castingTime)}<br />保存于 {displayDate(draft.createdAt)} · 未起卦</small>
                 <div className="actions" style={{ marginTop: 8 }}>
                   <Link className="text-link small" to={`/prompts?system=meihua&meihuaDraft=${draft.id}`}>关联提示词</Link>
                   <Button className="plain-button muted" onClick={() => void service.remove(draft)}>删除</Button>
