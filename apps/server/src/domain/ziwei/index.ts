@@ -145,6 +145,20 @@ function selectedDecade(c: ReturnType<typeof context>, startAge: number): ZiweiS
  return { name: '大限', range: [...item.ageRange], fromYear: item.yearRange[0], toYear: item.yearRange[1], layer: b, text: [`大限 ${item.ageRange[0]}–${item.ageRange[1]} 虚岁`, `农历年 ${item.yearRange[0]}–${item.yearRange[1]}`, scope(c.natal, b, '大限'), `大限四化  ${mutagenLine(c.natal.palaces, b.mutagen)}`, '', overlay(c.natal, [['大限', b]])].join('\n') };
 }
 
+/** Render calculated segments for readers without exposing internal deduplication keys. */
+export function renderViewText(result: ZiweiViewResult): string {
+ if(result.query.mode!=='months'&&result.query.mode!=='years')return result.text;
+ const months=result.query.mode==='months',first=new Map<string,ZiweiSegment>(),text:string[]=[];
+ for(const s of result.segments){
+  const previous=first.get(s.viewId),view=result.views[s.viewId];assert(view,'分段缺少完整盘面');
+  text.push(`${months?'流月':s.lunarLabel}  阳历 ${s.from} 至 ${s.to}  ${s.lunarLabel}  虚岁 ${s.nominalAge}`);
+  if(months)text.push(`农历整月 ${s.lunarRange.from} 至 ${s.lunarRange.to}${s.lunarRange.complete?'':'（范围未完整）'}；实际流月 ${s.monthlyRange.from} 至 ${s.monthlyRange.to}${s.monthlyRange.complete?'':'（范围未完整）'}；叠盘有效 ${s.overlayRange.from} 至 ${s.overlayRange.to}${s.overlayRange.complete?'':'（范围未完整）'}`);
+  text.push(previous?`与此前阳历 ${previous.from} 至 ${previous.to} 的盘面相同，见该日期段的完整盘面。`:view.text);
+  if(!previous)first.set(s.viewId,s);
+ }
+ return text.filter(Boolean).join('\n\n');
+}
+
 export function createView(input:ZiweiInput,rawQuery:ZiweiQuery):ZiweiViewResult {
  try{
  const parsed=ziweiQuerySchema.safeParse(rawQuery);assert(parsed.success,'运限查询参数不正确');const query=parsed.data,c=context(input),read=dayReader(c);const result:ZiweiViewResult={query,natal:c.natal,segments:[],views:{},text:'',engineMeta:{...ENGINE_META}};
@@ -152,14 +166,13 @@ export function createView(input:ZiweiInput,rawQuery:ZiweiQuery):ZiweiViewResult
  if(query.mode==='day'){result.day=read(query.date,query.includeDaily||query.level==='daily');result.day.text=dayText(c.natal,result.day);result.text=result.day.text;return result;}
  if(query.mode==='decades'){const pair=decadeResults(c,read,query.asOfDate);assert(pair.next,'下一大限资料不完整');result.decades={current:pair.current,next:pair.next};result.text=result.decades.current.text+'\n\n'+result.decades.next.text;return result;}
  const ranges=query.mode==='months'?[{...monthDates(query.startMonth,query.count),label:'流月'}]:[...new Set(query.years)].sort((a,b)=>a-b).map(year=>({...yearDates(year),label:`流年 ${year}（春节为界）`}));
- let sequence=0;const text:string[]=[];const kind=query.mode==='months'?'months':'years';
+ let sequence=0;const kind=query.mode==='months'?'months':'years';
  for(const request of ranges){supported(request.from,'查询起点');supported(request.to,'查询终点');assert(request.from>=c.birthSolarDate,`请求 ${request.from} 至 ${request.to} 包含出生前日期，整段查询不可用`);const segments:Array<{from:string;to:string;key:string;label:string}>=[];
   for(let date=request.from;date<=request.to;date=shift(date,1)){const h=read(date);const key=kind==='months'?overlayKey(h):yearlyKey(h);const label=kind==='months'?lunarInfo(date).label:request.label;const last=segments.at(-1);if(last&&last.key===key&&last.label===label&&last.to.slice(0,7)===date.slice(0,7)&&kind==='months')last.to=date;else if(last&&last.key===key&&kind==='years')last.to=date;else segments.push({from:date,to:date,key,label});}
   for(const segment of segments){const h=read(segment.from),viewId=kind+'-'+segment.key,repeated=Object.hasOwn(result.views,viewId);if(!repeated){result.views[viewId]={...h,text:dayText(c.natal,h,kind==='years'?'year':'day')};}
    const s:ZiweiSegment={id:'segment-'+(++sequence),viewId,from:segment.from,to:segment.to,lunarLabel:segment.label,lunarRange:lunarRange(segment.from),monthlyRange:rangeFor(segment.from,read,monthlyKey),overlayRange:kind==='years'?{from:segment.from,to:segment.to,complete:true}:rangeFor(segment.from,read,overlayKey),nominalAge:h.nominalAge,repeated};result.segments.push(s);
-   text.push(`${request.label}  阳历 ${s.from} 至 ${s.to}  ${s.lunarLabel}  虚岁 ${s.nominalAge}`,kind==='months'?`农历整月 ${s.lunarRange.from} 至 ${s.lunarRange.to}${s.lunarRange.complete?'':'（范围未完整）'}；实际流月 ${s.monthlyRange.from} 至 ${s.monthlyRange.to}${s.monthlyRange.complete?'':'（范围未完整）'}；叠盘有效 ${s.overlayRange.from} 至 ${s.overlayRange.to}${s.overlayRange.complete?'':'（范围未完整）'}`:'',repeated?`与此前 ${viewId} 相同状态，引用已提供的完整盘面。`:`结果引用 ${viewId}\n${result.views[viewId].text}`,'');
   }
  }
- assert(result.segments.length>0,'查询没有完整结果');result.text=text.filter(Boolean).join('\n\n');return result;
+ assert(result.segments.length>0,'查询没有完整结果');result.text=renderViewText(result);return result;
  }catch(err){if(err instanceof ZiweiError)throw err;throw new ZiweiError(err instanceof Error?err.message:'运限查询失败');}
 }

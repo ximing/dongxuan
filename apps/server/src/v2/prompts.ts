@@ -1,5 +1,5 @@
 import { castingTimeSchema, formatCastingTime, importLegacyPrompt, renderPromptDocument, type PromptPreviewInput, type PromptPreview, type PromptTemplateInput, type ZiweiQuery, type BaseChartSnapshot, type ViewChartSnapshot, type ZiweiViewResult } from '@dongxuan/dto';
-import { createView, createCurrentDecade } from '../domain/ziwei/index.js';
+import { createView, createCurrentDecade, renderViewText } from '../domain/ziwei/index.js';
 import { AppError } from '../errors.js';
 import { readChart, assertEngine, snapshotRecord } from './charts.js';
 import { templateRecord } from './records.js';
@@ -177,7 +177,7 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
             else
                 try {
                     const r = query({ mode: 'months', ...input.months });
-                    values['ziwei.months'] = r.text;
+                    values['ziwei.months'] = renderViewText(r);
                     values['range.label'] = `${input.months.startMonth} 起连续 ${input.months.count} 个阳历月（按实际流月拆段）`;
                     coverage.push(...r.segments.map(s => ({ from: s.from, to: s.to, label: s.lunarLabel })));
                 }
@@ -191,7 +191,7 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
             else
                 try {
                     const r = query({ mode: 'years', years: input.years });
-                    values['ziwei.years'] = r.text;
+                    values['ziwei.years'] = renderViewText(r);
                     values['years.label'] = [...new Set(input.years)].sort().join('、') + ' 年（春节为界）';
                     coverage.push(...r.segments.map(s => ({ from: s.from, to: s.to, label: '流年 ' + s.lunarLabel })));
                 }

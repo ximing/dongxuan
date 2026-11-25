@@ -88,6 +88,30 @@ describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
         for(const url of ['/api/v2/charts','/api/v2/notes','/api/v2/prompt-templates','/api/v2/meihua-drafts',`/api/v2/charts/${chart.id}/views`]){const all=(await req('GET',url)).body;expect(all.length).toBeGreaterThan(2);expect((await allPages(url)).map(x=>x.id)).toEqual(all.map((x:any)=>x.id));}
     },30000);
 
+    it('omits internal result references from fresh and historical monthly and yearly prompt data', async () => {
+        for (const query of [{ mode: 'months', startMonth: '2026-11', count: 2 }, { mode: 'years', years: [2026, 2027] }]) {
+            const preview = await req('POST', `/api/v2/charts/${chart.id}/views/preview`, query);
+            expect(preview.status).toBe(200);
+            const saved = await req('POST', `/api/v2/charts/${chart.id}/views`, { previewToken: preview.body.previewToken });
+            expect(saved.status).toBe(201);
+            const result = preview.body.result, viewId = result.segments[0].viewId;
+            expect(viewId).toMatch(/^(months|years)-[a-f0-9]{64}$/);
+            const legacyText = `结果引用 ${viewId}\n${result.text}`;
+            await getPool().query('UPDATE chart_snapshots SET result=$2::jsonb,text=$3 WHERE id=$1', [saved.body.id, JSON.stringify({ ...result, text: legacyText }), legacyText]);
+            const draft = { title: '运限资料', system: 'ziwei', body: `{{ziwei.${query.mode}}}`, inputsSchema: [], dataRequirements: [] };
+            const range = query.mode === 'months' ? { months: { startMonth: query.startMonth, count: query.count } } : { years: query.years };
+            for (const bindings of [{ chartId: chart.id }, { chartId: chart.id, snapshotId: saved.body.id }]) {
+                const prompt = await req('POST', '/api/v2/prompt-previews', { draft, bindings, ...range });
+                expect(prompt.status).toBe(200); expect(prompt.body.diagnostics).toEqual([]);
+                expect(prompt.body.text).toBe(result.text);
+                expect(prompt.body.text).not.toMatch(/结果引用|(?:months|years)-[a-f0-9]{64}/);
+                expect(prompt.body.coverage).toHaveLength(result.segments.length);
+                for (const fullView of Object.values(result.views) as { text: string }[]) expect(prompt.body.text).toContain(fullView.text);
+            }
+            expect((await getPool().query('SELECT text FROM chart_snapshots WHERE id=$1', [saved.body.id])).rows[0].text).toBe(legacyText);
+        }
+    }, 30000);
+
     it('returns only rendered prompt content and keeps provenance outside the copyable text', async () => {
         const draft = {
             title: '事业', system: 'ziwei', body: '{{ziwei.birth}}\n本次问题：{{input.question}}',

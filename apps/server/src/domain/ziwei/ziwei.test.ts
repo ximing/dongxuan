@@ -60,9 +60,14 @@ describe('ziwei v2 calculation boundaries',()=>{
  // Full-range calculations are CPU-bound and need headroom on shared CI runners.
  it('covers twelve full solar months, only referencing earlier states with complete twelve-palace blocks',()=>{
   const r=query(sample,{mode:'months',startMonth:'2026-11',count:12});expect(r.segments[0].from).toBe('2026-11-01');expect(r.segments.at(-1)?.to).toBe('2027-10-31');const seen=new Set<string>();for(const s of r.segments){if(s.repeated)expect(seen.has(s.viewId)).toBe(true);seen.add(s.viewId);expect(r.views[s.viewId].monthly.palaceNames).toHaveLength(12);expect(r.views[s.viewId].yearly.stars).toHaveLength(12);}expect(r.segments.some(s=>s.repeated)).toBe(true);
+  expect(r.text).not.toMatch(/结果引用|months-[a-f0-9]{64}/);
+  expect(r.text.match(/· 本命/g)).toHaveLength(Object.keys(r.views).length*12);
+  for(const s of r.segments.filter(s=>s.repeated)){const first=r.segments.find(previous=>previous.viewId===s.viewId)!;expect(r.text).toContain(`与此前阳历 ${first.from} 至 ${first.to} 的盘面相同`);}
  },30000);
  it('covers complete Spring-Festival years and excludes monthly text from annual analyses',()=>{
   const r=query(sample,{mode:'years',years:[2026,2027,2028]});expect(r.segments.map(s=>[s.from,s.to])).toEqual([['2026-02-17','2027-02-05'],['2027-02-06','2028-01-25'],['2028-01-26','2029-02-12']]);expect(r.segments.map(s=>s.nominalAge)).toEqual([34,35,36]);expect(r.text).not.toContain('流月');expect(r.text).toContain('丙辰');
+  expect(r.text).not.toMatch(/结果引用|years-[a-f0-9]{64}/);
+  expect(r.text.match(/· 本命/g)).toHaveLength(36);
  },60000);
  it('does not suppress invalid structure errors as a normal empty chart',()=>{expect(()=>createNatal({...sample,timeIndex:99})).toThrow(ZiweiError);expect(()=>query(sample,{mode:'months',startMonth:'2099-12',count:2})).toThrow(/支持范围/);});
 });
