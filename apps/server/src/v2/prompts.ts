@@ -191,6 +191,5 @@ export async function buildPrompt(userId: string, input: PromptPreviewInput): Pr
     let text: string;
     try { text = renderPromptDocument(t.bodyJson, values, 200000); }
     catch (error) { return { text: '', sources, coverage, fingerprint: '', templateRevision: revision, diagnostics: [error instanceof Error ? error.message : '无法生成完整提示词'] }; }
-    text += `\n\n---\n资料来源：${sources.join('；') || '模板固定文本'}。\n模板：${t.title}${input.draft ? '（草稿' + (revision ? '，基于 revision ' + revision : '') + '）' : revision ? ' · revision ' + revision : '（草稿）'}。不自动包含命盘备注和私人笔记。`;
     return { text, sources, coverage, fingerprint: fingerprint({ template: t, revision, input, baseId: base?.id, text }), templateRevision: revision, diagnostics: [] };
 }

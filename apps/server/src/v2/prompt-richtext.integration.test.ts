@@ -101,7 +101,7 @@ describe.skipIf(!run)('rich prompt PostgreSQL migration and APIs', () => {
     const preview = await req('POST', '/api/v2/prompt-previews', { draft: data });
     expect(preview.status).toBe(200);
     expect(preview.body.diagnostics).toEqual([]);
-    expect(preview.body.text).toContain('普通 {{range.label}} 与 {{input.action}}');
+    expect(preview.body.text).toBe('普通 {{range.label}} 与 {{input.action}}');
     expect((await req('PATCH', '/api/v2/prompt-templates/' + created.body.id, { ...data, bodyJson: undefined, body: '旧客户端覆盖', revision: 1 })).status).toBe(409);
     const oldLiteral = await req('PATCH', '/api/v2/prompt-templates/' + created.body.id, { ...data, bodyJson: undefined, body: '{{input.not_defined}} {{ Bad }}', revision: 1 });
     expect(oldLiteral.status).toBe(409);
@@ -133,7 +133,7 @@ describe.skipIf(!run)('rich prompt PostgreSQL migration and APIs', () => {
     expect((await req('PATCH', '/api/v2/prompt-templates/' + created.body.id, { ...template(document), revision: 1 })).status).toBe(200);
     const preview = await req('POST', '/api/v2/prompt-previews', { draft: template(document) });
     expect(preview.status).toBe(200);
-    expect(preview.body.text).toContain('字'.repeat(22000));
+    expect(preview.body.text).toBe('字'.repeat(22000));
     const tooLarge = { schemaVersion: 1, doc: { type: 'doc', content: [{ type: 'paragraph', content: Array.from({ length: 30000 }, () => ({ type: 'text', text: '字', marks: [{ type: 'bold' }, { type: 'italic' }] })) }] } };
     const invalid = await req('POST', '/api/v2/prompt-templates', template(tooLarge as PromptDocument));
     expect(invalid.status).toBe(400);

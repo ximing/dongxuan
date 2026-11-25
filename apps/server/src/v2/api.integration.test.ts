@@ -87,4 +87,29 @@ describe.skipIf(!run)('isolated PostgreSQL v2 API', () => {
         for(const url of ['/api/v2/charts','/api/v2/notes','/api/v2/prompt-templates','/api/v2/meihua-drafts',`/api/v2/charts/${chart.id}/views`]){const all=(await req('GET',url)).body;expect(all.length).toBeGreaterThan(2);expect((await allPages(url)).map(x=>x.id)).toEqual(all.map((x:any)=>x.id));}
     },30000);
 
+    it('returns only rendered prompt content and keeps provenance outside the copyable text', async () => {
+        const draft = {
+            title: '事业', system: 'ziwei', body: '{{ziwei.birth}}\n本次问题：{{input.question}}',
+            inputsSchema: [{ key: 'question', label: '问题', type: 'text', required: true }], dataRequirements: [],
+        };
+        const created = await req('POST', '/api/v2/prompt-templates', draft);
+        expect(created.status).toBe(201);
+        const natal = chart.baseSnapshot.result;
+        const expected = `出生输入 阳历 ${birth.date}；${birth.gender}；${natal.time} ${natal.timeRange}；晚子归次日；${natal.pillarPrecision}\n本次问题：如何安排下一步`;
+        const bindings = { chartId: chart.id }, inputValues = { question: '如何安排下一步' };
+        for (const template of [{ templateId: created.body.id, revision: created.body.revision }, { draft }]) {
+            const result = await req('POST', '/api/v2/prompt-previews', { ...template, bindings, inputValues });
+            expect(result.status).toBe(200);
+            expect(result.body.diagnostics).toEqual([]);
+            expect(result.body.text).toBe(expected);
+            expect(result.body.text).not.toContain(chart.baseSnapshot.id);
+            expect(result.body.sources.join()).toContain('基础快照 ' + chart.baseSnapshot.id);
+            expect(result.body.sources).toContain('用户本次填写');
+            expect(result.body.templateRevision).toBe('templateId' in template ? created.body.revision : null);
+        }
+        const literal = '资料来源：用户写入的正文。\n---\n模板：这也是正文。';
+        const result = await req('POST', '/api/v2/prompt-previews', { draft: { title: '普通文字', system: 'meihua', body: literal, inputsSchema: [], dataRequirements: [] } });
+        expect(result.body.text).toBe(literal);
+    });
+
 });
